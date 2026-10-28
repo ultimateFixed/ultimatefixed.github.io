@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>絶 固定進捗ボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* Layout: 単一カラムの作業画面。上部にチーム名とタブ、本文は 進捗 / 活動記録 / 計画設定 の3ビュー */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #1b1e25;
+  --muted: #5f6673;
+  --faint: #8b929e;
+  --line: #dde0e6;
+  --line-strong: #c4c9d2;
+  --accent: #2e5a87;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4ebf3;
+  --seg: #e9ecf1;
+  --seg-alt: #dfe3ea;
+  --ahead: #2c7a57;
+  --ahead-soft: #e2f1e9;
+  --behind: #b04f27;
+  --behind-soft: #f7e7df;
+  --font: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121419; --surface: #1a1d24; --ink: #e6e8ec; --muted: #9ba2ae; --faint: #747b88;
+    --line: #2a2f38; --line-strong: #3a404b; --accent: #82a9d4; --accent-ink: #10151c; --accent-soft: #1e2a38;
+    --seg: #232831; --seg-alt: #2a303a; --ahead: #62bf93; --ahead-soft: #18291f; --behind: #e38c62; --behind-soft: #2e1f18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121419; --surface: #1a1d24; --ink: #e6e8ec; --muted: #9ba2ae; --faint: #747b88;
+  --line: #2a2f38; --line-strong: #3a404b; --accent: #82a9d4; --accent-ink: #10151c; --accent-soft: #1e2a38;
+  --seg: #232831; --seg-alt: #2a303a; --ahead: #62bf93; --ahead-soft: #18291f; --behind: #e38c62; --behind-soft: #2e1f18;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 14px; line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1040px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* ---- header ---- */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { padding-block: 20px 0; display: grid; gap: 14px; }
+.title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.title-row h1 { font-size: 20px; font-weight: 700; letter-spacing: .02em; }
+.title-row .ult { color: var(--muted); font-size: 14px; }
+.title-row .mode { margin-left: auto; font-size: 12px; color: var(--faint); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; }
+.tab {
+  appearance: none; background: none; border: 0; cursor: pointer;
+  padding: 8px 14px 10px; font-size: 14px; color: var(--muted); font-weight: 500;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+main .wrap { padding-block: 24px 64px; }
+.view { display: grid; gap: 28px; }
+.view[hidden] { display: none; }
+.notice {
+  font-size: 13px; color: var(--muted); background: var(--accent-soft);
+  padding: 10px 14px; border-radius: 6px;
+}
+
+/* ---- section heading ---- */
+.sec { display: grid; gap: 12px; min-width: 0; }
+.sec-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sec-h h2 { font-size: 15px; font-weight: 700; }
+.sec-h .sub { font-size: 12px; color: var(--faint); }
+
+/* ---- status ---- */
+.status {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  padding: 22px 24px; display: grid; gap: 18px;
+}
+.status-main { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; justify-content: space-between; }
+.label { font-size: 12px; color: var(--faint); letter-spacing: .04em; }
+.now-phase { font-size: 26px; font-weight: 700; line-height: 1.35; }
+.now-phase .pn { color: var(--accent); margin-right: 8px; }
+.pill {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 16px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.pill.behind { background: var(--behind-soft); color: var(--behind); }
+.pill.ahead { background: var(--ahead-soft); color: var(--ahead); }
+.pill small { font-weight: 500; font-size: 12px; }
+.status-note { color: var(--muted); font-size: 13px; margin: 0; }
+.status-note b { color: var(--ink); font-weight: 500; }
+
+/* ---- phase track ---- */
+.track { display: grid; gap: 6px; }
+.bar { position: relative; height: 34px; display: flex; border-radius: 4px; overflow: hidden; background: var(--seg); }
+.seg {
+  position: relative; height: 100%; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--muted); font-weight: 500;
+  border-right: 1px solid var(--surface);
+}
+.seg:nth-child(even) { background: var(--seg-alt); }
+.seg:last-child { border-right: 0; }
+.fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); opacity: .22; pointer-events: none; }
+.fill-edge { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--accent); pointer-events: none; transform: translateX(-1.5px); }
+.marker { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--ink); pointer-events: none; }
+.track-legend { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--muted); }
+.track-legend i { display: inline-block; width: 14px; height: 10px; vertical-align: -1px; margin-right: 6px; }
+.lg-actual { background: var(--accent); opacity: .55; }
+.lg-expect { border-left: 2px dashed var(--ink); width: 2px !important; height: 12px !important; }
+
+/* ---- stats ---- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stat { background: var(--surface); padding: 16px 18px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.stat .v { font-size: 22px; font-weight: 700; line-height: 1.3; }
+.stat .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+.stat .s { font-size: 12px; color: var(--muted); }
+.stat .meter { height: 4px; background: var(--seg); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.stat .meter span { display: block; height: 100%; background: var(--accent); }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- tables ---- */
+.table-box { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; font-weight: 500; color: var(--faint); background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; }
+td.wrap-cell { white-space: normal; min-width: 160px; color: var(--muted); }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); }
+.tag.done { border-color: transparent; background: var(--ahead-soft); color: var(--ahead); }
+.tag.now { border-color: transparent; background: var(--accent); color: var(--accent-ink); }
+.tag.clear { border-color: transparent; background: var(--ahead-soft); color: var(--ahead); font-weight: 500; }
+.over { color: var(--behind); }
+.under { color: var(--ahead); }
+.dim { color: var(--faint); }
+
+/* ---- weekly chart ---- */
+.weeks { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 8px; }
+.wk { display: grid; grid-template-columns: 76px minmax(0, 1fr) 92px; gap: 12px; align-items: center; font-size: 12px; }
+.wk .wl { color: var(--muted); }
+.wk .wv { text-align: right; }
+.wk .wv small { color: var(--faint); }
+.wk-bar { position: relative; height: 14px; background: var(--seg); border-radius: 2px; }
+.wk-bar .a { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px; }
+.wk-bar .p { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .6; }
+.wk.cur .wl { color: var(--ink); font-weight: 500; }
+
+/* ---- forms ---- */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 16px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > span { font-size: 12px; color: var(--muted); }
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
+  width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--surface); font-size: 14px; line-height: 1.4;
+}
+textarea { resize: vertical; min-height: 40px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input:disabled, select:disabled, textarea:disabled { opacity: .6; }
+.check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  appearance: none; cursor: pointer; border-radius: 6px; padding: 8px 18px; font-size: 14px; font-weight: 500;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+.btn.ghost:hover { background: var(--seg); filter: none; }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+.btn.warn { background: var(--behind); border-color: var(--behind); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.icon-btn {
+  appearance: none; cursor: pointer; border: 1px solid var(--line-strong); background: transparent; color: var(--muted);
+  border-radius: 6px; width: 30px; height: 30px; font-size: 13px; line-height: 1; display: inline-grid; place-items: center;
+}
+.icon-btn:hover { background: var(--seg); color: var(--ink); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.hint { font-size: 12px; color: var(--faint); margin: 0; }
+
+/* phase editor */
+.ph-list { display: grid; gap: 8px; }
+.ph-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 96px auto; gap: 8px; align-items: center; }
+.ph-row .pn { font-size: 13px; color: var(--muted); font-weight: 500; }
+.ph-row .ops { display: flex; gap: 4px; }
+.ph-row .hrs { position: relative; }
+.ph-row .hrs input { padding-right: 28px; text-align: right; }
+.ph-row .hrs em { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 12px; color: var(--faint); pointer-events: none; }
+.ph-total { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+.ph-total b { color: var(--ink); }
+
+/* schedule editor */
+.sched { display: grid; gap: 6px; }
+.sc-row { display: grid; grid-template-columns: 70px minmax(0, 120px) 14px minmax(0, 120px) 1fr; gap: 8px; align-items: center; }
+.sc-row .dash { text-align: center; color: var(--faint); }
+.sc-row .h { text-align: right; color: var(--muted); font-size: 13px; }
+.sc-row.off input[type="time"] { opacity: .4; }
+.sc-row.off .h { color: var(--faint); }
+.sc-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.sc-sum div { background: var(--surface); padding: 10px 14px; display: grid; }
+.sc-sum b { font-size: 18px; }
+.sc-sum span { font-size: 12px; color: var(--muted); }
+@media (max-width: 520px) {
+  .sc-row { grid-template-columns: 58px minmax(0, 1fr) 10px minmax(0, 1fr); }
+  .sc-row .h { grid-column: 2 / -1; text-align: left; margin-top: -4px; }
+  .ph-row { grid-template-columns: 28px minmax(0, 1fr) 84px; }
+  .ph-row .ops { grid-column: 2 / -1; }
+  .sc-sum b { font-size: 16px; }
+}
+
+.seg-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; justify-self: start; max-width: 100%; }
+.seg-toggle label { cursor: pointer; }
+.seg-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.seg-toggle span { display: block; padding: 6px 14px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.seg-toggle label + label span { border-left: 1px solid var(--line-strong); }
+.seg-toggle input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.seg-toggle input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+.simple-fields { grid-template-columns: repeat(auto-fit, minmax(150px, 220px)); }
+.unit-input { position: relative; display: block; }
+.unit-input input { padding-right: 44px; text-align: right; }
+.unit-input em { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 12px; color: var(--faint); pointer-events: none; }
+.confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--behind-soft); border-radius: 6px; font-size: 13px; }
+
+.empty { background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 8px; padding: 28px 24px; display: grid; gap: 14px; }
+.empty h2 { font-size: 18px; }
+.empty p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+.sp-box { display: grid; gap: 8px; margin-top: 10px; padding: 12px 14px; background: var(--bg); border-radius: 6px; max-width: 420px; }
+.sp-row { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px; align-items: center; font-size: 13px; }
+.sp-row .hrs { position: relative; }
+.sp-row .hrs input { padding-right: 28px; text-align: right; }
+.sp-row .hrs em { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 12px; color: var(--faint); pointer-events: none; }
+.sp-rem { text-align: right; font-weight: 500; padding-right: 10px; }
+.sp-rem small { font-weight: 400; color: var(--faint); margin-left: 2px; }
+.sp-box .hint { margin-top: 2px; }
+.log-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%) translateY(20px);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 6px; font-size: 13px;
+  opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 20;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err { background: var(--behind); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="title-row">
+      <h1 id="h-team">固定進捗ボード</h1>
+      <span class="ult" id="h-ult"></span>
+      <span class="mode" id="h-mode">読み込み中…</span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="progress" id="tab-progress">進捗</button>
+      <button class="tab" role="tab" data-tab="record" id="tab-record">活動記録</button>
+      <button class="tab" role="tab" data-tab="plan" id="tab-plan">計画設定</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div id="banner"></div>
+    <section class="view" id="view-progress">
+      <div class="empty"><h2>データを読み込んでいます</h2><p>固定の計画と活動記録を取得しています。</p></div>
+    </section>
+    <section class="view" id="view-record" hidden>
+      <div class="empty"><h2>データを読み込んでいます</h2><p>しばらく経っても表示されない場合は、通信状況と firebase-config.js の設定を確認してください。</p></div>
+    </section>
+    <section class="view" id="view-plan" hidden>
+      <div class="empty"><h2>データを読み込んでいます</h2><p>しばらく経っても表示されない場合は、通信状況と firebase-config.js の設定を確認してください。</p></div>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+(() => {
+'use strict';
+
+// ===== プリセット =====
+// 見込み時間は一般的な固定ペースを想定した目安。計画設定で自由に変更できる。
+const PRESETS = {
+  fru:  { name: '絶もうひとつの未来', phases: [['フェイトブレイカー',15],['シヴァ',20],['闇の巫女',25],['光と闇',25],['パンドラ',30]] },
+  top:  { name: '絶オメガ検証戦', phases: [['オメガ',12],['オメガM／F',18],['ハローワールド',22],['ブルースクリーン',8],['ダイナミス',35],['アルファオメガ',30]] },
+  dsr:  { name: '絶竜詩戦争', phases: [['騎士',10],['トールダン',18],['ニーズヘッグ',14],['竜の眼',12],['異聞',25],['双竜',25],['竜騎神トールダン',30]] },
+  tea:  { name: '絶アレキサンダー討滅戦', phases: [['リビングリキッド',10],['ブルートジャスティス',20],['アレキサンダー・プライム',20],['完全体アレキサンダー',30]] },
+  uwu:  { name: '絶アルテマウェポン破壊作戦', phases: [['ガルーダ',6],['イフリート',8],['タイタン',10],['ラハブレア',12],['アルテマウェポン',24]] },
+  ucob: { name: '絶バハムート討滅戦', phases: [['ツインタニア',8],['ネール',12],['バハムート・プライム',12],['トリプル',15],['ゴールデンバハムート',13]] },
+  custom: { name: '', phases: [['',15],['',15],['',15]] },
+};
+const PRESET_ORDER = ['fru','top','dsr','tea','uwu','ucob','custom'];
+const DOW = ['月','火','水','木','金','土','日'];
+
+const presetPhases = key => PRESETS[key].phases.map((p, i) => ({ id: 'p' + (i + 1), name: p[0], hours: p[1] }));
+const defaultSchedule = () => DOW.map((_, i) => ({ on: [1, 3, 4, 6].includes(i), start: '21:00', end: '00:00' }));
+
+// ===== 日付ユーティリティ =====
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const monIdx = d => (d.getDay() + 6) % 7;
+const todayD = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const dayDiff = (a, b) => Math.round((b - a) / 864e5);
+const fmtD = d => `${d.getMonth() + 1}/${d.getDate()}（${DOW[monIdx(d)]}）`;
+const fmtDY = d => `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}（${DOW[monIdx(d)]}）`;
+const isYmd = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const r1 = h => Math.round(h * 10) / 10;
+const fh = h => { const r = r1(h); return Number.isInteger(r) ? String(r) : r.toFixed(1); };
+const num = v => { const n = parseFloat(v); return isFinite(n) && n >= 0 ? n : 0; };
+
+// ===== 状態 =====
+const state = {
+  config: null, configLoaded: false,
+  sessions: [], sessionsLoaded: false,
+  canWrite: true, mode: 'loading',
+  tab: 'progress',
+  presetPending: null,
+  confirmDel: null,
+};
+let store = null;
+
+// ===== スケジュール計算 =====
+function toMin(t) { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+function slotHours(slot) {
+  if (!slot || !slot.on) return 0;
+  const a = toMin(slot.start), b = toMin(slot.end);
+  if (a == null || b == null) return 0;
+  let d = b - a; if (d <= 0) d += 1440;
+  return d / 60;
+}
+const schedule = cfg => (Array.isArray(cfg.schedule) && cfg.schedule.length === 7) ? cfg.schedule : defaultSchedule();
+// 予定の決め方：weekday = 曜日ごとに設定 / simple = 週の回数と1回の時間だけ
+const isSimple = cfg => cfg.scheduleMode === 'simple';
+const simpleOf = cfg => {
+  const s = cfg.simple || {};
+  return { days: Math.min(7, Math.max(0, Math.round(num(s.days)))), hours: Math.min(24, num(s.hours)) };
+};
+const weeklyHours = cfg => isSimple(cfg) ? simpleOf(cfg).days * simpleOf(cfg).hours
+  : schedule(cfg).reduce((s, x) => s + slotHours(x), 0);
+const activeDays = cfg => isSimple(cfg) ? simpleOf(cfg).days
+  : schedule(cfg).filter(x => slotHours(x) > 0).length;
+// その曜日に活動するときの1日の時間（記録フォームの初期値用）
+const dayHours = (cfg, d) => isSimple(cfg) ? simpleOf(cfg).hours : slotHours(schedule(cfg)[monIdx(d)]);
+function schedOn(cfg, d) {
+  if (isYmd(cfg.startDate) && d < parse(cfg.startDate)) return 0;
+  // 回数モードは曜日が決まっていないので、週の合計を7日に均等に割り振る
+  if (isSimple(cfg)) return weeklyHours(cfg) / 7;
+  return slotHours(schedule(cfg)[monIdx(d)]);
+}
+function schedRange(cfg, from, to) {
+  if (isSimple(cfg)) {
+    let n = 0;
+    for (let d = new Date(from); d <= to; d = addDays(d, 1)) if (!(isYmd(cfg.startDate) && d < parse(cfg.startDate))) n++;
+    // 日数を先に概算し、時間は「日数 × 1回の時間」にそろえる
+    const days = Math.round(simpleOf(cfg).days * n / 7);
+    return { h: days * simpleOf(cfg).hours, days };
+  }
+  let h = 0, days = 0;
+  for (let d = new Date(from); d <= to; d = addDays(d, 1)) { const x = schedOn(cfg, d); if (x > 0) { h += x; days++; } }
+  return { h, days };
+}
+// from の日から予定通り活動して need 時間に届く日
+function walk(cfg, from, need) {
+  if (need <= 1e-9) return null;
+  if (weeklyHours(cfg) <= 0) return null;
+  let acc = 0, d = new Date(from);
+  for (let i = 0; i < 3660; i++) { acc += schedOn(cfg, d); if (acc >= need - 1e-9) return d; d = addDays(d, 1); }
+  return null;
+}
+
+// ===== 進捗計算 =====
+function calc(cfg, sessions) {
+  const phases = cfg.phases || [];
+  const planned = phases.map(p => num(p.hours));
+  const totalPlanned = planned.reduce((a, b) => a + b, 0);
+  const starts = []; planned.reduce((acc, h, i) => (starts[i] = acc, acc + h), 0);
+
+  const sorted = [...sessions].filter(s => isYmd(s.date)).sort((a, b) => a.date < b.date ? -1 : 1);
+  const byPhase = {}, clearedOn = {};
+  const idxOf = {}; phases.forEach((p, i) => { idxOf[p.id] = i; });
+  let totalHours = 0;
+  for (const s of sorted) {
+    const h = num(s.hours); totalHours += h;
+    if (Array.isArray(s.split) && s.split.length) {
+      for (const part of s.split) byPhase[part.phaseId] = (byPhase[part.phaseId] || 0) + num(part.hours);
+    } else {
+      byPhase[s.phaseId] = (byPhase[s.phaseId] || 0) + h;
+    }
+    if (s.cleared && !clearedOn[s.phaseId]) clearedOn[s.phaseId] = s.date;
+    // 後のフェーズを練習した日 = それより前のフェーズはすべて突破済み
+    const si = idxOf[s.phaseId];
+    if (si != null) for (let j = 0; j < si; j++) { if (!clearedOn[phases[j].id]) clearedOn[phases[j].id] = s.date; }
+  }
+  const cur = phases.findIndex(p => !clearedOn[p.id]);
+  const complete = phases.length > 0 && cur === -1;
+
+  // 実際の到達位置（見込み時間換算）
+  let actualPos;
+  if (complete) actualPos = totalPlanned;
+  else if (cur < 0) actualPos = 0;
+  else actualPos = starts[cur] + Math.min(byPhase[phases[cur].id] || 0, planned[cur]);
+
+  // 見込みでいるはずの位置 = 累計活動時間
+  let expIdx = -1;
+  for (let i = 0; i < phases.length; i++) { if (totalHours < starts[i] + planned[i]) { expIdx = i; break; } }
+  const expectedDone = phases.length > 0 && expIdx === -1;
+
+  const diff = complete ? totalHours - totalPlanned : totalHours - actualPos; // +: 遅れ / -: 進み
+  const wk = weeklyHours(cfg), ad = activeDays(cfg);
+  const perDay = ad > 0 ? wk / ad : 0;
+
+  // 完了見込み
+  const t = todayD();
+  const hasToday = sorted.some(s => s.date === ymd(t));
+  let from = hasToday ? addDays(t, 1) : t;
+  if (isYmd(cfg.startDate) && from < parse(cfg.startDate)) from = parse(cfg.startDate);
+  const remaining = Math.max(0, totalPlanned - actualPos);
+  const projected = complete ? null : walk(cfg, from, remaining);
+  const plannedFinish = isYmd(cfg.startDate) ? walk(cfg, parse(cfg.startDate), totalPlanned) : null;
+
+  return { phases, planned, starts, totalPlanned, sorted, byPhase, clearedOn, totalHours, cur, complete,
+    actualPos, expIdx, expectedDone, diff, perDay, wk, ad, projected, plannedFinish, remaining, days: sorted.length };
+}
+
+// ===== 保存先 =====
+function makeLocalStore() {
+  const KEY = 'ult-progress-board-v1';
+  let data = { config: null, sessions: {} };
+  try { const raw = localStorage.getItem(KEY); if (raw) data = JSON.parse(raw) || data; } catch (e) {}
+  const subs = { c: [], s: [] };
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} };
+  const emitC = () => subs.c.forEach(f => f(data.config ? JSON.parse(JSON.stringify(data.config)) : null));
+  const emitS = () => subs.s.forEach(f => f(Object.values(data.sessions)));
+  return {
+    onConfig(f) { subs.c.push(f); setTimeout(() => f(data.config ? JSON.parse(JSON.stringify(data.config)) : null)); },
+    onSessions(f) { subs.s.push(f); setTimeout(() => f(Object.values(data.sessions))); },
+    async setConfig(c) { data.config = JSON.parse(JSON.stringify(c)); persist(); emitC(); },
+    async setSession(s) { data.sessions[s.date] = { ...s }; persist(); emitS(); },
+    async deleteSession(date) { delete data.sessions[date]; persist(); emitS(); },
+  };
+}
+function makeDbStore(db) {
+  return {
+    onConfig(f) {
+      db.doc('fixed/config').onSnapshot(snap => f(snap.exists ? JSON.parse(JSON.stringify(snap.data())) : null),
+        e => toast(errText(e), true));
+    },
+    onSessions(f) {
+      db.collection('sessions').onSnapshot(qs => f(qs.docs.map(d => d.data())), e => toast(errText(e), true));
+    },
+    setConfig: c => db.doc('fixed/config').set(c),
+    setSession: s => db.doc('sessions/' + s.date).set(s),
+    deleteSession: date => db.doc('sessions/' + date).delete(),
+  };
+}
+// ---- Firestore（GitHub Pages 版の共有保存先） ----
+// teams/<チームキー>/config/main と teams/<チームキー>/sessions/<日付> に保存する
+function makeFirestoreStore(fs, key) {
+  const cfgRef = doc(fs, 'teams', key, 'config', 'main');
+  const sesCol = collection(fs, 'teams', key, 'sessions');
+  const onErr = e => { console.error(e); toast(errText(e), true); };
+  return {
+    onConfig(f) { onSnapshot(cfgRef, s => f(s.exists() ? JSON.parse(JSON.stringify(s.data())) : null), onErr); },
+    onSessions(f) { onSnapshot(sesCol, qs => f(qs.docs.map(d => d.data())), onErr); },
+    setConfig: c => setDoc(cfgRef, c),
+    setSession: s => setDoc(doc(sesCol, s.date), s),
+    deleteSession: date => deleteDoc(doc(sesCol, date)),
+  };
+}
+function firebaseReady() {
+  const c = firebaseConfig || {};
+  return !!(c.apiKey && c.projectId && !/ここに|YOUR_/i.test(c.apiKey + c.projectId));
+}
+
+// ---- チームキー ----
+const KEY_RE = /^[A-Za-z0-9_-]{20,64}$/;
+const KEY_STORE = 'ult-progress-team-key';
+function parseKey(text) {
+  const m = /team=([A-Za-z0-9_-]+)/.exec(text || '');
+  const k = m ? m[1] : String(text || '').trim();
+  return KEY_RE.test(k) ? k : null;
+}
+function readTeamKey() {
+  const fromHash = parseKey(location.hash);
+  if (fromHash) {
+    try { localStorage.setItem(KEY_STORE, fromHash); } catch (e) {}
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    return fromHash;
+  }
+  try { const k = localStorage.getItem(KEY_STORE); if (KEY_RE.test(k || '')) return k; } catch (e) {}
+  return null;
+}
+function newTeamKey() {
+  const a = new Uint8Array(18); crypto.getRandomValues(a);
+  return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+const inviteLink = () => `${location.origin}${location.pathname}#team=${state.teamKey}`;
+function showJoin() {
+  document.querySelector('.tabs').hidden = true;
+  document.getElementById('h-mode').textContent = '';
+  for (const k of ['record', 'plan']) document.getElementById('view-' + k).hidden = true;
+  const el = document.getElementById('view-progress'); el.hidden = false;
+  el.innerHTML = `
+  <div class="empty">
+    <h2>チームに参加する</h2>
+    <p>固定のメンバーから届いた招待リンクを開くと、自動で参加できます。リンクの代わりに、招待リンクそのものやチームキーをここに貼り付けても参加できます。</p>
+    <div class="fields" style="grid-template-columns:minmax(0,1fr)">
+      <label class="field"><span>招待リンク または チームキー</span><input type="text" id="join-key" placeholder="https://…#team=…"></label>
+    </div>
+    <div class="actions"><button class="btn" data-act="join">参加する</button></div>
+  </div>
+  <div class="empty">
+    <h2>新しくチームを作る</h2>
+    <p>固定の代表者が最初に1回だけ行います。作成後、「計画設定」タブにある招待リンクをメンバーに共有してください。</p>
+    <div class="actions"><button class="btn ghost" data-act="new-team">チームを作成する</button></div>
+  </div>`;
+}
+function enterTeam(key) {
+  try { localStorage.setItem(KEY_STORE, key); } catch (e) {}
+  location.reload();
+}
+
+function errText(e) {
+  const c = e && e.code;
+  if (c === 'permission-denied') return '保存が拒否されました。チームキーか Firestore のルール設定を確認してください。';
+  if (c === 'invalid_argument') return '保存できませんでした。編集権限がない可能性があります。';
+  if (c === 'quota_exceeded') return '保存容量の上限に達しました。古い記録を削除してください。';
+  if (c === 'resource_exhausted') return '操作が集中しています。少し待ってからもう一度お試しください。';
+  return '保存できませんでした。通信状況を確認して、もう一度お試しください。';
+}
+async function withRetry(fn) {
+  try { return await fn(); }
+  catch (e) {
+    if (e && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); return fn(); }
+    throw e;
+  }
+}
+
+// ===== トースト =====
+let toastTimer;
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.toggle('err', !!err); t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), err ? 4200 : 1800);
+}
+
+// ===== 設定の保存（デバウンス・1件ずつ） =====
+let cfgTimer = null, cfgChain = Promise.resolve();
+function saveConfigSoon(delay = 500) {
+  clearTimeout(cfgTimer);
+  cfgTimer = setTimeout(() => {
+    cfgTimer = null;
+    const snapshot = JSON.parse(JSON.stringify(state.config));
+    snapshot.updatedAt = new Date().toISOString();
+    cfgChain = cfgChain.then(() => withRetry(() => store.setConfig(snapshot)))
+      .then(() => toast('保存しました'))
+      .catch(e => { toast(errText(e), true); if (e && e.code === 'invalid_argument') { state.canWrite = false; renderAll(true); } });
+  }, delay);
+}
+
+// ===== 描画 =====
+const dis = () => state.canWrite ? '' : ' disabled';
+const phaseLabel = (cfg, id) => {
+  const i = (cfg.phases || []).findIndex(p => p.id === id);
+  if (i < 0) return '<span class="dim">削除されたフェーズ</span>';
+  const n = cfg.phases[i].name;
+  return `P${i + 1}${n ? ' ' + esc(n) : ''}`;
+};
+const phaseShort = (cfg, id) => {
+  const i = (cfg.phases || []).findIndex(p => p.id === id);
+  return i < 0 ? '<span class="dim">?</span>' : `P${i + 1}`;
+};
+
+function renderHeader() {
+  const c = state.config;
+  document.getElementById('h-team').textContent = (c && c.team) || '固定進捗ボード';
+  document.getElementById('h-ult').textContent = (c && c.ultName) || '';
+  const mode = state.mode === 'shared' ? (state.canWrite ? '共有中' : '共有中・閲覧のみ')
+    : state.mode === 'local' ? 'この端末に保存' : '読み込み中…';
+  document.getElementById('h-mode').textContent = mode;
+  const b = document.getElementById('banner');
+  b.innerHTML = state.mode === 'local'
+    ? '<p class="notice" style="margin:0 0 20px">firebase-config.js の設定がまだ入っていないため、このブラウザにだけ保存しています。設定を入れるとメンバーと共有されます。</p>'
+    : (!state.canWrite && state.mode === 'shared'
+      ? '<p class="notice" style="margin:0 0 20px">閲覧のみの権限で開いています。記録や計画を変更するには、作成者に編集権限をもらってください。</p>' : '');
+}
+
+function setupHTML() {
+  const opts = PRESET_ORDER.map(k => `<option value="${k}"${k === 'fru' ? ' selected' : ''}>${k === 'custom' ? 'その他（自分で入力）' : esc(PRESETS[k].name)}</option>`).join('');
+  return `
+  <div class="empty">
+    <h2>固定の計画を作りましょう</h2>
+    <p>攻略する絶と開始日を選ぶと、フェーズごとの見込み時間が入った計画ができます。見込み時間や週の活動日は「計画設定」であとから調整できます。</p>
+    <div class="fields">
+      <label class="field"><span>固定名</span><input type="text" id="setup-team" placeholder="例：火木金日 21時固定"${dis()}></label>
+      <label class="field"><span>攻略する絶</span><select id="setup-ult"${dis()}>${opts}</select></label>
+      <label class="field"><span>活動開始日</span><input type="date" id="setup-start" value="${ymd(todayD())}"${dis()}></label>
+    </div>
+    <div class="actions"><button class="btn" data-act="setup"${dis()}>この内容で始める</button></div>
+  </div>`;
+}
+
+function renderProgress() {
+  const el = document.getElementById('view-progress');
+  if (!state.configLoaded) return;
+  if (!state.config) { if (!el.contains(document.activeElement)) el.innerHTML = setupHTML(); return; }
+  const cfg = state.config;
+  const c = calc(cfg, state.sessions);
+  const t = todayD();
+
+  // --- ステータス ---
+  let nowHTML, pillHTML, noteHTML;
+  if (!c.phases.length) {
+    nowHTML = '<div class="now-phase">フェーズが未登録です</div>';
+    pillHTML = ''; noteHTML = '<p class="status-note">「計画設定」でフェーズと見込み時間を登録してください。</p>';
+  } else {
+    if (c.complete) {
+      nowHTML = `<div class="label">現在の状況</div><div class="now-phase">攻略完了</div>`;
+    } else {
+      const p = c.phases[c.cur];
+      nowHTML = `<div class="label">現在の攻略フェーズ</div><div class="now-phase"><span class="pn">P${c.cur + 1}</span>${esc(p.name)}</div>`;
+    }
+    if (c.days === 0) {
+      pillHTML = `<span class="pill">記録待ち</span>`;
+      noteHTML = `<p class="status-note">まだ活動記録がありません。「活動記録」タブからその日の活動時間と練習したフェーズを記録すると、見込みとの差が出ます。</p>`;
+    } else {
+      const d = c.diff, abs = Math.abs(d);
+      const dayEq = c.perDay > 0 ? `活動日 約${fh(abs / c.perDay)}日分` : '';
+      if (abs < 0.5) pillHTML = `<span class="pill">見込みどおり</span>`;
+      else if (d > 0) pillHTML = `<span class="pill behind">${fh(abs)}h 遅れ${dayEq ? ` <small>${dayEq}</small>` : ''}</span>`;
+      else pillHTML = `<span class="pill ahead">${fh(abs)}h 進み${dayEq ? ` <small>${dayEq}</small>` : ''}</span>`;
+
+      // 見込み上のフェーズ内のどのあたりか（序盤 20% 未満 / 終盤 75% 以上）
+      let stage = '';
+      if (!c.expectedDone) {
+        const pl = c.planned[c.expIdx];
+        const r = pl > 0 ? (c.totalHours - c.starts[c.expIdx]) / pl : 0;
+        stage = r < 0.2 ? 'に入る頃' : r < 0.75 ? 'を攻略中' : 'を攻略終盤';
+      }
+      const expTxt = c.expectedDone ? '<b>すべてのフェーズを突破している</b>' :
+        `<b>P${c.expIdx + 1} ${esc(c.phases[c.expIdx].name)}</b> ${stage}のはず`;
+      noteHTML = `<p class="status-note">活動 <b>${c.days}日</b>・累計 <b>${fh(c.totalHours)}時間</b>。見込みでは${expTxt}です。`
+        + (c.complete ? ` 見込み合計 ${fh(c.totalPlanned)}時間 に対して ${fh(c.totalHours)}時間 で突破しました。` : '') + `</p>`;
+    }
+  }
+
+  // --- フェーズトラック ---
+  let trackHTML = '';
+  if (c.phases.length && c.totalPlanned > 0) {
+    const segs = c.phases.map((p, i) => {
+      const w = c.planned[i] / c.totalPlanned * 100;
+      return `<div class="seg" style="width:${w}%" title="P${i + 1} ${esc(p.name)}・見込み ${fh(c.planned[i])}h">${w > 5 ? 'P' + (i + 1) : ''}</div>`;
+    }).join('');
+    const fillW = Math.min(100, c.actualPos / c.totalPlanned * 100);
+    const expW = Math.min(100, c.totalHours / c.totalPlanned * 100);
+    trackHTML = `
+    <div class="track">
+      <div class="bar">${segs}
+        <div class="fill" style="width:${fillW}%"></div>
+        ${fillW > 0 && fillW < 100 ? `<div class="fill-edge" style="left:${fillW}%"></div>` : ''}
+        ${c.days > 0 ? `<div class="marker" style="left:${expW}%"></div>` : ''}
+      </div>
+      <div class="track-legend">
+        <span><i class="lg-actual"></i>実際の到達位置</span>
+        <span><i class="lg-expect"></i>累計時間から見た見込み位置</span>
+        <span>見込み合計 ${fh(c.totalPlanned)}時間</span>
+      </div>
+    </div>`;
+  }
+
+  // --- 今週・今月 ---
+  const wkStart = addDays(t, -monIdx(t)), wkEnd = addDays(wkStart, 6);
+  const moStart = new Date(t.getFullYear(), t.getMonth(), 1), moEnd = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+  const inRange = (a, b) => c.sorted.filter(s => { const d = parse(s.date); return d >= a && d <= b; });
+  const wkAct = inRange(wkStart, wkEnd), moAct = inRange(moStart, moEnd);
+  const sumH = arr => arr.reduce((a, s) => a + num(s.hours), 0);
+  const wkPlan = schedRange(cfg, wkStart, wkEnd), moPlan = schedRange(cfg, moStart, moEnd);
+  const meter = (a, p) => `<div class="meter"><span style="width:${p > 0 ? Math.min(100, a / p * 100) : 0}%"></span></div>`;
+
+  let finishV = '—', finishS = '';
+  if (c.complete) { finishV = '完了'; finishS = c.sorted.length ? `${fmtDY(parse(c.sorted[c.sorted.length - 1].date))} に突破` : ''; }
+  else if (c.projected) {
+    finishV = `${c.projected.getMonth() + 1}/${c.projected.getDate()}<small>（${DOW[monIdx(c.projected)]}）</small>`;
+    if (c.plannedFinish) {
+      const dd = dayDiff(c.plannedFinish, c.projected);
+      finishS = `当初予定 ${fmtD(c.plannedFinish)}` + (dd > 0 ? `・<span class="over">${dd}日遅れ</span>` : dd < 0 ? `・<span class="under">${-dd}日早い</span>` : '・予定どおり');
+    }
+  } else if (c.wk <= 0) finishS = '週の活動日が未設定です';
+
+  const statsHTML = `
+  <div class="stats">
+    <div class="stat"><span class="label">今週の活動</span><span class="v">${fh(sumH(wkAct))}<small>/ ${fh(wkPlan.h)}h</small></span>
+      <span class="s">${wkAct.length} / ${wkPlan.days}日・${fmtD(wkStart)}〜</span>${meter(sumH(wkAct), wkPlan.h)}</div>
+    <div class="stat"><span class="label">今月の活動</span><span class="v">${fh(sumH(moAct))}<small>/ ${fh(moPlan.h)}h</small></span>
+      <span class="s">${moAct.length} / ${moPlan.days}日・${t.getMonth() + 1}月</span>${meter(sumH(moAct), moPlan.h)}</div>
+    <div class="stat"><span class="label">累計</span><span class="v">${fh(c.totalHours)}<small>h</small></span>
+      <span class="s">${c.days}日活動・見込み残り ${fh(c.remaining)}h</span>${meter(c.actualPos, c.totalPlanned)}</div>
+    <div class="stat"><span class="label">完了見込み</span><span class="v">${finishV}</span><span class="s">${finishS}</span></div>
+  </div>`;
+
+  // --- フェーズ表 ---
+  const rows = c.phases.map((p, i) => {
+    const act = c.byPhase[p.id] || 0, pl = c.planned[i];
+    const cl = c.clearedOn[p.id];
+    let st;
+    if (cl && (c.complete || i < c.cur)) st = '<span class="tag done">突破</span>';
+    else if (i === c.cur) st = '<span class="tag now">攻略中</span>';
+    else st = '<span class="tag">未着手</span>';
+    const d = act - pl;
+    const diffCell = act === 0 && !cl ? '<span class="dim">—</span>'
+      : (cl || i === c.cur) ? (d > 0.05 ? `<span class="over">+${fh(d)}</span>` : (cl && d < -0.05 ? `<span class="under">${fh(d)}</span>` : (i === c.cur ? `<span class="dim">残り ${fh(-d)}</span>` : '±0'))) : '<span class="dim">—</span>';
+    const expMark = (!c.complete && c.days > 0 && i === c.expIdx && i !== c.cur) ? ' <span class="tag">見込み位置</span>' : '';
+    return `<tr>
+      <td><b>P${i + 1}</b>&nbsp; ${esc(p.name)}${expMark}</td>
+      <td class="num">${fh(pl)}h</td>
+      <td class="num">${act ? fh(act) + 'h' : '<span class="dim">0h</span>'}</td>
+      <td class="num">${diffCell}</td>
+      <td>${st}</td>
+      <td>${cl ? fmtD(parse(cl)) : '<span class="dim">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  const tableHTML = c.phases.length ? `
+  <div class="sec">
+    <div class="sec-h"><h2>フェーズ別</h2><span class="sub">差 = 実績 − 見込み（+ は見込みより時間がかかっている）</span></div>
+    <div class="table-box"><table>
+      <thead><tr><th>フェーズ</th><th class="num">見込み</th><th class="num">実績</th><th class="num">差</th><th>状態</th><th>突破日</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>` : '';
+
+  // --- 直近8週 ---
+  const weeks = [];
+  for (let k = 7; k >= 0; k--) {
+    const a = addDays(wkStart, -7 * k), b = addDays(a, 6);
+    weeks.push({ a, act: sumH(inRange(a, b)), plan: schedRange(cfg, a, b).h, cur: k === 0 });
+  }
+  const maxW = Math.max(1, ...weeks.map(w => Math.max(w.act, w.plan)));
+  const weeksHTML = `
+  <div class="sec">
+    <div class="sec-h"><h2>週ごとの活動時間</h2><span class="sub">棒が実績、縦線が予定（月曜始まり）</span></div>
+    <div class="weeks">${weeks.map(w => `
+      <div class="wk${w.cur ? ' cur' : ''}">
+        <span class="wl">${w.a.getMonth() + 1}/${w.a.getDate()}〜${w.cur ? ' 今週' : ''}</span>
+        <div class="wk-bar"><div class="a" style="width:${w.act / maxW * 100}%"></div>${w.plan > 0 ? `<div class="p" style="left:calc(${w.plan / maxW * 100}% - 1px)"></div>` : ''}</div>
+        <span class="wv">${fh(w.act)}h <small>/ ${fh(w.plan)}h</small></span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  el.innerHTML = `
+  <div class="status">
+    <div class="status-main"><div>${nowHTML}</div><div>${pillHTML}</div></div>
+    ${noteHTML}
+    ${trackHTML}
+  </div>
+  ${statsHTML}
+  ${tableHTML}
+  ${weeksHTML}`;
+}
+
+// ---- 活動記録 ----
+let logHoursTouched = false;
+function defaultPhaseId() {
+  const cfg = state.config; if (!cfg || !cfg.phases?.length) return '';
+  const c = calc(cfg, state.sessions);
+  return c.complete ? cfg.phases[cfg.phases.length - 1].id : cfg.phases[Math.max(0, c.cur)].id;
+}
+function renderRecord() {
+  const el = document.getElementById('view-record');
+  if (!state.configLoaded) return;
+  if (!state.config) { el.innerHTML = '<div class="empty"><h2>まだ計画がありません</h2><p>「進捗」タブで攻略する絶と開始日を選ぶと、活動を記録できるようになります。</p></div>'; return; }
+  const cfg = state.config;
+  const form = document.getElementById('log-form');
+  const keepForm = form && form.contains(document.activeElement);
+
+  const listRows = [...state.sessions].filter(s => isYmd(s.date)).sort((a, b) => a.date < b.date ? 1 : -1).map(s => {
+    const d = parse(s.date);
+    const confirming = state.confirmDel === s.date;
+    return `<tr>
+      <td>${fmtDY(d)}</td>
+      <td class="num">${fh(num(s.hours))}h</td>
+      <td>${Array.isArray(s.split) && s.split.length > 1
+        ? s.split.map(x => `${phaseShort(cfg, x.phaseId)} ${fh(num(x.hours))}h`).join(' <span class="dim">→</span> ')
+        : phaseLabel(cfg, s.phaseId)}</td>
+      <td>${s.cleared ? '<span class="tag clear">突破</span>' : ''}</td>
+      <td class="wrap-cell">${esc(s.note || '')}</td>
+      <td><div class="log-row-actions">
+        <button class="btn ghost small" data-act="edit-log" data-date="${s.date}"${dis()}>編集</button>
+        <button class="btn ${confirming ? 'warn' : 'ghost'} small" data-act="del-log" data-date="${s.date}"${dis()}>${confirming ? '本当に削除' : '削除'}</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  const listHTML = `
+  <div class="sec" id="log-list">
+    <div class="sec-h"><h2>これまでの記録</h2><span class="sub">${state.sessions.length}件</span></div>
+    ${listRows ? `<div class="table-box"><table>
+      <thead><tr><th>日付</th><th class="num">時間</th><th>到達フェーズ</th><th></th><th>メモ</th><th></th></tr></thead>
+      <tbody>${listRows}</tbody></table></div>`
+      : '<div class="empty"><p>まだ記録がありません。上のフォームから最初の活動を記録してください。</p></div>'}
+  </div>`;
+
+  if (keepForm) {
+    // 入力中のフォームは触らず、一覧だけ差し替える
+    const list = document.getElementById('log-list');
+    if (list) list.outerHTML = listHTML;
+    return;
+  }
+
+  const prev = form ? {
+    date: document.getElementById('log-date').value, hours: document.getElementById('log-hours').value,
+    phase: document.getElementById('log-phase').value, cleared: document.getElementById('log-cleared').checked,
+    note: document.getElementById('log-note').value,
+  } : null;
+
+  const opts = (cfg.phases || []).map((p, i) => `<option value="${esc(p.id)}">P${i + 1}${p.name ? ' ' + esc(p.name) : ''}</option>`).join('');
+  el.innerHTML = `
+  <div class="sec">
+    <div class="sec-h"><h2>活動を記録</h2><span class="sub">1日1件。同じ日付で保存すると上書きされます</span></div>
+    <form class="panel" id="log-form" autocomplete="off">
+      <div class="fields">
+        <label class="field"><span>日付</span><input type="date" id="log-date"${dis()}></label>
+        <label class="field"><span>活動時間（h）</span><input type="number" id="log-hours" min="0" max="24" step="0.5"${dis()}></label>
+        <label class="field"><span>到達したフェーズ（一番先）</span><select id="log-phase"${dis()}>${opts}</select></label>
+      </div>
+      <p class="hint">その日に一番先まで進んだフェーズを選んでください。それより前のフェーズは自動で突破扱いになります（例：初日にP2まで行ったら P2 を選ぶ → P1 突破）。</p>
+      <div id="log-split"></div>
+      <label class="check"><input type="checkbox" id="log-cleared"${dis()}> 選んだフェーズも突破した（最終フェーズの突破＝攻略完了など）</label>
+      <label class="field"><span>メモ（任意）</span><textarea id="log-note" rows="2" placeholder="例：竜の眼 初見。塔の処理を固めた"${dis()}></textarea></label>
+      <div class="actions">
+        <button class="btn" type="submit" id="log-save"${dis()}>記録する</button>
+        <span class="hint" id="log-hint"></span>
+      </div>
+    </form>
+  </div>
+  ${listHTML}`;
+
+  if (prev) {
+    document.getElementById('log-date').value = prev.date;
+    document.getElementById('log-hours').value = prev.hours;
+    const sel = document.getElementById('log-phase');
+    if ([...sel.options].some(o => o.value === prev.phase)) sel.value = prev.phase;
+    document.getElementById('log-cleared').checked = prev.cleared;
+    document.getElementById('log-note').value = prev.note;
+    renderSplit();
+    updateLogHint();
+  } else {
+    fillLogFor(ymd(todayD()));
+  }
+}
+function fillLogFor(date) {
+  const cfg = state.config; if (!cfg) return;
+  const ex = state.sessions.find(s => s.date === date);
+  document.getElementById('log-date').value = date;
+  const sel = document.getElementById('log-phase');
+  if (ex) {
+    document.getElementById('log-hours').value = fh(num(ex.hours));
+    if ([...sel.options].some(o => o.value === ex.phaseId)) sel.value = ex.phaseId;
+    document.getElementById('log-cleared').checked = !!ex.cleared;
+    document.getElementById('log-note').value = ex.note || '';
+    logHoursTouched = true;
+    splitDraft = { on: false, values: {}, back: 1 };
+    if (Array.isArray(ex.split) && ex.split.length > 1) {
+      splitDraft.on = true;
+      const sel = cfg.phases.findIndex(p => p.id === ex.phaseId);
+      let minIdx = sel;
+      for (const part of ex.split) {
+        if (part.phaseId !== ex.phaseId) splitDraft.values[part.phaseId] = num(part.hours);
+        const i = cfg.phases.findIndex(p => p.id === part.phaseId);
+        if (i >= 0 && i < minIdx) minIdx = i;
+      }
+      splitDraft.back = Math.max(1, sel - minIdx);
+    }
+  } else {
+    splitDraft = { on: false, values: {}, back: 1 };
+    const h = isYmd(date) ? dayHours(cfg, parse(date)) : 0;
+    document.getElementById('log-hours').value = h > 0 ? fh(h) : (state.config ? fh(defaultDayHours(cfg)) : '3');
+    const dp = defaultPhaseId(); if (dp) sel.value = dp;
+    document.getElementById('log-cleared').checked = false;
+    document.getElementById('log-note').value = '';
+    logHoursTouched = false;
+  }
+  renderSplit();
+  updateLogHint();
+}
+
+// ---- フェーズを跨いだ日の時間内訳 ----
+let splitDraft = { on: false, values: {}, back: 1 };
+// その日より前の記録から見た「その日の開始時点で攻略中だったフェーズ」
+function startIdxBefore(date) {
+  const cfg = state.config; if (!cfg || !cfg.phases?.length) return 0;
+  const c = calc(cfg, state.sessions.filter(s => s.date < date));
+  return c.complete ? cfg.phases.length : Math.max(0, c.cur);
+}
+function splitRange() {
+  const cfg = state.config;
+  const date = document.getElementById('log-date')?.value;
+  const pid = document.getElementById('log-phase')?.value;
+  if (!cfg || !isYmd(date) || !pid) return null;
+  const sel = cfg.phases.findIndex(p => p.id === pid);
+  if (sel <= 0 || startIdxBefore(date) >= sel) return null;
+  // 起点は1つ前のフェーズ。2つ以上跨いだ日は「さらに前」で広げる
+  const from = Math.max(0, sel - Math.max(1, splitDraft.back || 1));
+  return { from, sel };
+}
+function splitRemainder() {
+  const r = splitRange(); if (!r) return 0;
+  const total = parseFloat(document.getElementById('log-hours')?.value) || 0;
+  let used = 0;
+  for (let i = r.from; i < r.sel; i++) used += num(splitDraft.values[state.config.phases[i].id]);
+  return total - used;
+}
+function renderSplit() {
+  const box = document.getElementById('log-split'); if (!box) return;
+  const r = splitRange();
+  if (!r) { box.innerHTML = ''; return; }
+  const cfg = state.config;
+  const label = i => `P${i + 1}${cfg.phases[i].name ? ' ' + esc(cfg.phases[i].name) : ''}`;
+  let html = `<label class="check"><input type="checkbox" id="log-split-on"${splitDraft.on ? ' checked' : ''}${dis()}> フェーズを跨いだので時間を分ける（${label(r.from)} → ${label(r.sel)}）</label>`;
+  if (splitDraft.on) {
+    const rows = [];
+    for (let i = r.from; i < r.sel; i++) {
+      const p = cfg.phases[i];
+      const v = splitDraft.values[p.id];
+      rows.push(`<div class="sp-row"><span>${label(i)}</span>
+        <label class="hrs"><input type="number" id="log-split-${esc(p.id)}" data-split="${esc(p.id)}" min="0" max="24" step="0.5" value="${v != null ? esc(v) : ''}" placeholder="0" aria-label="${label(i)} の時間"${dis()}><em>h</em></label></div>`);
+    }
+    const rem = splitRemainder();
+    rows.push(`<div class="sp-row"><span>${label(r.sel)}</span><span class="sp-rem${rem < 0 ? ' over' : ''}" id="log-split-rem">${fh(rem)}h<small>（残り）</small></span></div>`);
+    const more = r.from > 0 ? `<div><button type="button" class="btn ghost small" data-act="split-more"${dis()}>＋ P${r.from} も跨いだ</button></div>` : '';
+    html += `<div class="sp-box">${more}${rows.join('')}<p class="hint">活動時間の合計から、前のフェーズに使った時間を引いた残りが ${label(r.sel)} の時間になります。</p></div>`;
+  }
+  box.innerHTML = html;
+}
+function updateSplitRemainder() {
+  const el = document.getElementById('log-split-rem'); if (!el) return;
+  const rem = splitRemainder();
+  el.innerHTML = `${fh(rem)}h<small>（残り）</small>`;
+  el.classList.toggle('over', rem < 0);
+}
+function defaultDayHours(cfg) { const ad = activeDays(cfg); return ad ? weeklyHours(cfg) / ad : 3; }
+function updateLogHint() {
+  const date = document.getElementById('log-date')?.value;
+  const ex = state.sessions.find(s => s.date === date);
+  const hint = document.getElementById('log-hint'), btn = document.getElementById('log-save');
+  if (!hint || !btn) return;
+  hint.textContent = ex ? 'この日の記録があります。保存すると内容を更新します。' : '';
+  btn.textContent = ex ? '更新する' : '記録する';
+}
+
+// ---- 計画設定 ----
+function renderPlan(force) {
+  const el = document.getElementById('view-plan');
+  if (!state.configLoaded) return;
+  if (!state.config) { el.innerHTML = '<div class="empty"><h2>まだ計画がありません</h2><p>「進捗」タブで攻略する絶と開始日を選んでください。</p></div>'; return; }
+  if (!force && el.contains(document.activeElement) && document.activeElement.matches('input, select, textarea')) return;
+  const cfg = state.config;
+  const phases = cfg.phases || [];
+  const total = phases.reduce((a, p) => a + num(p.hours), 0);
+  const presetKey = cfg.preset && PRESETS[cfg.preset] ? cfg.preset : 'custom';
+  const presetOpts = PRESET_ORDER.map(k => `<option value="${k}"${k === presetKey ? ' selected' : ''}>${k === 'custom' ? 'その他（自分で入力）' : esc(PRESETS[k].name)}</option>`).join('');
+
+  const phRows = phases.map((p, i) => {
+    const confirming = state.confirmDel === 'ph:' + p.id;
+    return `
+    <div class="ph-row">
+      <span class="pn">P${i + 1}</span>
+      <input type="text" id="ph-name-${esc(p.id)}" data-ph="${i}" data-f="name" value="${esc(p.name)}" placeholder="フェーズ名" aria-label="P${i + 1} フェーズ名"${dis()}>
+      <label class="hrs"><input type="number" id="ph-hours-${esc(p.id)}" data-ph="${i}" data-f="hours" value="${esc(p.hours)}" min="0" step="0.5" aria-label="P${i + 1} 見込み時間"${dis()}><em>h</em></label>
+      <div class="ops">
+        <button class="icon-btn" data-act="ph-up" data-i="${i}" aria-label="上へ" title="上へ"${i === 0 || !state.canWrite ? ' disabled' : ''}>↑</button>
+        <button class="icon-btn" data-act="ph-down" data-i="${i}" aria-label="下へ" title="下へ"${i === phases.length - 1 || !state.canWrite ? ' disabled' : ''}>↓</button>
+        <button class="${confirming ? 'btn warn small' : 'icon-btn'}" data-act="ph-del" data-i="${i}" aria-label="削除" title="削除"${dis()}>${confirming ? '削除する' : '×'}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const sched = schedule(cfg);
+  const scRows = sched.map((s, i) => {
+    const h = slotHours(s);
+    return `
+    <div class="sc-row${s.on ? '' : ' off'}">
+      <label class="check"><input type="checkbox" id="sc-on-${i}" data-sc="${i}" data-f="on"${s.on ? ' checked' : ''}${dis()}> ${DOW[i]}</label>
+      <input type="time" id="sc-start-${i}" data-sc="${i}" data-f="start" value="${esc(s.start)}" aria-label="${DOW[i]}曜 開始"${dis()}>
+      <span class="dash">〜</span>
+      <input type="time" id="sc-end-${i}" data-sc="${i}" data-f="end" value="${esc(s.end)}" aria-label="${DOW[i]}曜 終了"${dis()}>
+      <span class="h">${s.on ? fh(h) + '時間' : '休み'}</span>
+    </div>`;
+  }).join('');
+
+  const t = todayD();
+  const moStart = new Date(t.getFullYear(), t.getMonth(), 1), moEnd = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+  const mo = schedRange({ ...cfg, startDate: '' }, moStart, moEnd);
+  const wk = weeklyHours(cfg);
+  const finish = isYmd(cfg.startDate) ? walk(cfg, parse(cfg.startDate), total) : null;
+
+  const inviteHTML = state.teamKey && state.mode === 'shared' ? `
+  <div class="sec">
+    <div class="sec-h"><h2>メンバー招待リンク</h2><span class="sub">このリンクを知っている人は記録を見て編集できます。固定メンバー以外には共有しないでください</span></div>
+    <div class="panel">
+      <div class="actions" style="flex-wrap:nowrap">
+        <input type="text" id="invite-link" value="${esc(inviteLink())}" readonly aria-label="招待リンク">
+        <button class="btn" data-act="copy-invite" style="white-space:nowrap">コピー</button>
+      </div>
+      <div class="actions">
+        <button class="btn ${state.confirmDel === 'leave' ? 'warn' : 'ghost'} small" data-act="leave-team">${state.confirmDel === 'leave' ? 'この端末からチームを外す' : '別のチームに切り替える'}</button>
+        <span class="hint">データは消えません。招待リンクを開けばいつでも戻れます。</span>
+      </div>
+    </div>
+  </div>` : '';
+
+  el.innerHTML = `
+  ${inviteHTML}
+  <div class="sec">
+    <div class="sec-h"><h2>固定と絶</h2></div>
+    <div class="panel">
+      <div class="fields">
+        <label class="field"><span>固定名</span><input type="text" id="cfg-team" data-cfg="team" value="${esc(cfg.team)}" placeholder="例：火木金日 21時固定"${dis()}></label>
+        <label class="field"><span>絶の名前</span><input type="text" id="cfg-ult" data-cfg="ultName" value="${esc(cfg.ultName)}"${dis()}></label>
+        <label class="field"><span>活動開始日</span><input type="date" id="cfg-start" data-cfg="startDate" value="${esc(cfg.startDate)}"${dis()}></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>フェーズと見込み時間</h2><span class="sub">合計 ${fh(total)}時間</span></div>
+    <div class="panel">
+      <div class="fields" style="grid-template-columns:minmax(0,1fr)">
+        <label class="field"><span>プリセットから読み込む</span>
+          <div class="actions" style="flex-wrap:nowrap">
+            <select id="preset-sel"${dis()}>${presetOpts}</select>
+            <button class="btn ghost" data-act="preset-load" style="white-space:nowrap"${dis()}>読み込む</button>
+          </div>
+        </label>
+      </div>
+      ${state.presetPending ? `<div class="confirm">今のフェーズ構成を「${esc(state.presetPending === 'custom' ? 'その他' : PRESETS[state.presetPending].name)}」の初期値に置き換えます。活動記録はフェーズの番号で引き継がれます。
+        <button class="btn warn small" data-act="preset-apply">置き換える</button><button class="btn ghost small" data-act="preset-cancel">やめる</button></div>` : ''}
+      <div class="ph-list">${phRows || '<p class="hint">フェーズがありません。下のボタンから追加してください。</p>'}</div>
+      <div class="actions"><button class="btn ghost small" data-act="ph-add"${dis()}>＋ フェーズを追加</button></div>
+      <div class="ph-total"><span>見込み合計</span><b>${fh(total)}時間</b></div>
+      <p class="hint">プリセットの見込み時間は目安の初期値です。固定のペースに合わせて調整してください。</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>週の活動日と時間</h2><span class="sub">${isSimple(cfg) ? '曜日を決めずに、週の回数と1回の時間で計算します' : '日をまたぐ時間（例 21:00〜0:00）も入力できます'}</span></div>
+    <div class="panel">
+      <div class="seg-toggle" role="radiogroup" aria-label="予定の決め方">
+        <label><input type="radio" name="sched-mode" id="sched-mode-weekday" value="weekday"${isSimple(cfg) ? '' : ' checked'}${dis()}><span>曜日ごとに設定</span></label>
+        <label><input type="radio" name="sched-mode" id="sched-mode-simple" value="simple"${isSimple(cfg) ? ' checked' : ''}${dis()}><span>週の回数と時間だけ</span></label>
+      </div>
+      ${isSimple(cfg) ? `
+      <div class="fields simple-fields">
+        <label class="field"><span>週あたりの活動日数</span>
+          <span class="unit-input"><input type="number" id="simple-days" data-simple="days" min="0" max="7" step="1" value="${simpleOf(cfg).days}"${dis()}><em>日</em></span></label>
+        <label class="field"><span>1回あたりの活動時間</span>
+          <span class="unit-input"><input type="number" id="simple-hours" data-simple="hours" min="0" max="24" step="0.5" value="${fh(simpleOf(cfg).hours)}"${dis()}><em>時間</em></span></label>
+      </div>
+      <p class="hint">曜日が決まっていないので、月の合計や完了見込みは週の合計を日割りした概算です。</p>`
+      : `<div class="sched">${scRows}</div>`}
+      <div class="sc-sum">
+        <div><span>週の合計</span><b>${fh(wk)}時間</b><span>${activeDays(cfg)}日</span></div>
+        <div><span>${t.getMonth() + 1}月の合計</span><b>${fh(mo.h)}時間</b><span>${mo.days}日</span></div>
+        <div><span>計画どおりなら完了</span><b>${finish ? `${finish.getMonth() + 1}/${finish.getDate()}` : '—'}</b><span>${finish ? fmtDY(finish) : '活動日を設定してください'}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAll(force) {
+  renderHeader();
+  renderProgress();
+  renderRecord();
+  renderPlan(force);
+}
+
+// ===== タブ =====
+function setTab(tab, push) {
+  if (!['progress', 'record', 'plan'].includes(tab)) tab = 'progress';
+  state.tab = tab;
+  for (const k of ['progress', 'record', 'plan']) {
+    document.getElementById('view-' + k).hidden = k !== tab;
+    document.getElementById('tab-' + k).setAttribute('aria-selected', String(k === tab));
+  }
+  if (push) { try { history.replaceState(null, '', '#' + tab); } catch (e) {} }
+  try { localStorage.setItem('ult-progress-tab', tab); } catch (e) {}
+}
+
+// ===== イベント =====
+document.addEventListener('click', e => {
+  const tabBtn = e.target.closest('[data-tab]');
+  if (tabBtn) { setTab(tabBtn.dataset.tab, true); return; }
+  const btn = e.target.closest('[data-act]');
+  if (!btn || btn.disabled) return;
+  const act = btn.dataset.act;
+  if (act === 'join') {
+    const k = parseKey(document.getElementById('join-key').value);
+    if (!k) { toast('招待リンクかチームキーの形式が正しくありません', true); return; }
+    enterTeam(k); return;
+  }
+  if (act === 'new-team') { enterTeam(newTeamKey()); return; }
+  if (act === 'copy-invite') {
+    const input = document.getElementById('invite-link');
+    const done = () => toast('招待リンクをコピーしました');
+    const fallback = () => { input.select(); try { document.execCommand('copy'); } catch (e) {} done(); };
+    if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, fallback); else fallback();
+    return;
+  }
+  if (act === 'leave-team') {
+    if (state.confirmDel !== 'leave') { state.confirmDel = 'leave'; renderPlan(true); setTimeout(() => { if (state.confirmDel === 'leave') { state.confirmDel = null; renderPlan(true); } }, 3500); return; }
+    try { localStorage.removeItem(KEY_STORE); } catch (e) {}
+    location.reload(); return;
+  }
+  if (!state.canWrite && act !== 'preset-cancel') return;
+  const cfg = state.config;
+
+  if (act === 'setup') {
+    const key = document.getElementById('setup-ult').value;
+    const start = document.getElementById('setup-start').value || ymd(todayD());
+    state.config = {
+      team: document.getElementById('setup-team').value.trim(),
+      preset: key, ultName: PRESETS[key].name,
+      startDate: start, phases: presetPhases(key), schedule: defaultSchedule(),
+    };
+    renderAll(true);
+    saveConfigSoon(0);
+    return;
+  }
+  if (act === 'split-more') {
+    splitDraft.back = (splitDraft.back || 1) + 1;
+    renderSplit(); return;
+  }
+  if (act === 'edit-log') {
+    setTab('record', true);
+    fillLogFor(btn.dataset.date);
+    document.getElementById('log-hours')?.focus();
+    return;
+  }
+  if (act === 'del-log') {
+    const date = btn.dataset.date;
+    if (state.confirmDel !== date) { state.confirmDel = date; renderRecord(); setTimeout(() => { if (state.confirmDel === date) { state.confirmDel = null; renderRecord(); } }, 3500); return; }
+    state.confirmDel = null;
+    withRetry(() => store.deleteSession(date)).then(() => toast('削除しました')).catch(err => toast(errText(err), true));
+    return;
+  }
+  if (!cfg) return;
+  if (act === 'ph-up' || act === 'ph-down') {
+    const i = +btn.dataset.i, j = act === 'ph-up' ? i - 1 : i + 1;
+    if (j < 0 || j >= cfg.phases.length) return;
+    [cfg.phases[i], cfg.phases[j]] = [cfg.phases[j], cfg.phases[i]];
+    renderAll(true); saveConfigSoon(); return;
+  }
+  if (act === 'ph-del') {
+    const i = +btn.dataset.i, p = cfg.phases[i], key = 'ph:' + p.id;
+    if (state.confirmDel !== key) { state.confirmDel = key; renderPlan(true); setTimeout(() => { if (state.confirmDel === key) { state.confirmDel = null; renderPlan(true); } }, 3500); return; }
+    state.confirmDel = null;
+    cfg.phases.splice(i, 1);
+    renderAll(true); saveConfigSoon(); return;
+  }
+  if (act === 'ph-add') {
+    let id; do { id = 'x' + Math.random().toString(36).slice(2, 8); } while (cfg.phases.some(p => p.id === id));
+    cfg.phases.push({ id, name: '', hours: 10 });
+    renderAll(true);
+    document.getElementById('ph-name-' + id)?.focus();
+    saveConfigSoon(); return;
+  }
+  if (act === 'preset-load') { state.presetPending = document.getElementById('preset-sel').value; renderPlan(true); return; }
+  if (act === 'preset-cancel') { state.presetPending = null; renderPlan(true); return; }
+  if (act === 'preset-apply') {
+    const key = state.presetPending; state.presetPending = null;
+    if (!PRESETS[key]) return;
+    cfg.preset = key;
+    cfg.phases = presetPhases(key);
+    if (key !== 'custom') cfg.ultName = PRESETS[key].name;
+    renderAll(true); saveConfigSoon(); return;
+  }
+});
+
+document.addEventListener('input', e => {
+  const t = e.target, cfg = state.config;
+  if (t.id === 'log-hours') { logHoursTouched = true; updateSplitRemainder(); return; }
+  if (t.dataset.split) { splitDraft.values[t.dataset.split] = num(t.value); updateSplitRemainder(); return; }
+  if (!cfg || !state.canWrite) return;
+  if (t.dataset.cfg) {
+    if (t.dataset.cfg === 'startDate' && !isYmd(t.value)) return;
+    cfg[t.dataset.cfg] = t.dataset.cfg === 'startDate' ? t.value : t.value;
+    renderHeader(); renderProgress(); saveConfigSoon(); return;
+  }
+  if (t.dataset.simple) {
+    const s = { ...simpleOf(cfg) };
+    s[t.dataset.simple] = num(t.value);
+    cfg.simple = s;
+    renderProgress(); saveConfigSoon(); return;
+  }
+  if (t.dataset.ph != null) {
+    const p = cfg.phases[+t.dataset.ph]; if (!p) return;
+    p[t.dataset.f] = t.dataset.f === 'hours' ? num(t.value) : t.value;
+    renderProgress(); renderRecord(); saveConfigSoon();
+    const tot = cfg.phases.reduce((a, x) => a + num(x.hours), 0);
+    document.querySelectorAll('#view-plan .ph-total b').forEach(b => b.textContent = fh(tot) + '時間');
+    return;
+  }
+});
+
+document.addEventListener('change', e => {
+  const t = e.target, cfg = state.config;
+  if (t.id === 'log-date') {
+    const ex = state.sessions.find(s => s.date === t.value);
+    if (ex) fillLogFor(t.value);
+    else {
+      if (!logHoursTouched && isYmd(t.value) && cfg) {
+        const h = dayHours(cfg, parse(t.value));
+        if (h > 0) document.getElementById('log-hours').value = fh(h);
+      }
+      renderSplit();
+      updateLogHint();
+    }
+    return;
+  }
+  if (t.id === 'log-phase') { splitDraft.back = 1; renderSplit(); return; }
+  if (t.id === 'log-split-on') { splitDraft.on = t.checked; renderSplit(); return; }
+  if (!cfg || !state.canWrite) return;
+  if (t.name === 'sched-mode') {
+    if (t.value === 'simple' && !cfg.simple) {
+      // 初めて切り替えたときは、曜日ごとの設定から週の回数と平均時間を引き継ぐ
+      const days = schedule(cfg).filter(x => slotHours(x) > 0).length;
+      const wk = schedule(cfg).reduce((s, x) => s + slotHours(x), 0);
+      cfg.simple = { days: days || 4, hours: days ? Math.round(wk / days * 2) / 2 : 3 };
+    }
+    cfg.scheduleMode = t.value === 'simple' ? 'simple' : 'weekday';
+    renderAll(true); saveConfigSoon(); return;
+  }
+  if (t.dataset.sc != null) {
+    if (!Array.isArray(cfg.schedule) || cfg.schedule.length !== 7) cfg.schedule = defaultSchedule();
+    const s = cfg.schedule[+t.dataset.sc];
+    if (t.dataset.f === 'on') s.on = t.checked; else if (toMin(t.value) != null) s[t.dataset.f] = t.value;
+    renderAll(true); saveConfigSoon(); return;
+  }
+  if (t.dataset.ph != null || t.dataset.cfg || t.dataset.simple) {
+    // 入力確定時に計画画面の集計を更新
+    setTimeout(() => renderPlan(), 0);
+  }
+});
+
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'log-form') return;
+  e.preventDefault();
+  if (!state.canWrite || !state.config) return;
+  const date = document.getElementById('log-date').value;
+  const hours = parseFloat(document.getElementById('log-hours').value);
+  if (!isYmd(date)) { toast('日付を入力してください', true); return; }
+  if (!isFinite(hours) || hours <= 0 || hours > 24) { toast('活動時間は 0.5〜24 の範囲で入力してください', true); return; }
+  const rec = {
+    date, hours: r1(hours),
+    phaseId: document.getElementById('log-phase').value,
+    cleared: document.getElementById('log-cleared').checked,
+    note: document.getElementById('log-note').value.trim().slice(0, 500),
+    updatedAt: new Date().toISOString(),
+  };
+  const sr = splitRange();
+  if (sr && splitDraft.on) {
+    const rem = splitRemainder();
+    if (rem < -1e-9) { toast('前のフェーズの時間が活動時間の合計を超えています', true); return; }
+    const parts = [];
+    for (let i = sr.from; i < sr.sel; i++) {
+      const p = state.config.phases[i], v = num(splitDraft.values[p.id]);
+      if (v > 0) parts.push({ phaseId: p.id, hours: r1(v) });
+    }
+    if (rem > 1e-9) parts.push({ phaseId: rec.phaseId, hours: r1(rem) });
+    if (parts.length > 1) rec.split = parts;
+  }
+  const btn = document.getElementById('log-save'); btn.disabled = true;
+  withRetry(() => store.setSession(rec))
+    .then(() => {
+      toast(rec.cleared ? '記録しました。フェーズ突破おめでとうございます' : '記録しました');
+      btn.disabled = false;
+      document.activeElement?.blur?.();
+      renderRecord(); fillLogFor(ymd(todayD()));
+    })
+    .catch(err => { btn.disabled = false; toast(errText(err), true); });
+});
+
+// フォーカスが外れたら、保留していた再描画を反映
+document.addEventListener('focusout', () => setTimeout(() => {
+  if (!document.activeElement || document.activeElement === document.body) { renderRecord(); renderPlan(); }
+}, 0));
+
+// ===== 起動 =====
+function start(s) {
+  store = s;
+  store.onConfig(cfg => {
+    // 自分の未保存の変更がある間は、手元の状態を優先する
+    if (cfgTimer) { state.configLoaded = true; return; }
+    state.config = cfg; state.configLoaded = true;
+    if (cfg && !cfg.phases) cfg.phases = [];
+    renderAll();
+  });
+  store.onSessions(list => {
+    state.sessions = list.filter(x => x && isYmd(x.date));
+    state.sessionsLoaded = true;
+    renderAll();
+  });
+}
+
+(async () => {
+  state.teamKey = readTeamKey();
+  let initial = 'progress';
+  try { const h = (location.hash || '').slice(1); if (h) initial = h; else initial = localStorage.getItem('ult-progress-tab') || 'progress'; } catch (e) {}
+  setTab(initial, false);
+
+  let db = null, user = null;
+  try {
+    if (window.claude && typeof window.claude.use === 'function') {
+      [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    }
+  } catch (e) {}
+  if (user) {
+    try { const can = await user.can('data.write'); if (can === false) state.canWrite = false; } catch (e) {}
+  }
+  if (db) { state.mode = 'shared'; start(makeDbStore(db)); renderHeader(); return; }
+
+  // ---- Firebase ----
+  if (!firebaseReady()) {
+    state.mode = 'local'; state.localReason = 'config'; state.canWrite = true;
+    start(makeLocalStore()); renderHeader(); return;
+  }
+  const key = state.teamKey;
+  if (!key) { showJoin(); return; }
+  try {
+    const app = initializeApp(firebaseConfig);
+    const fs = getFirestore(app);
+    state.mode = 'shared';
+    start(makeFirestoreStore(fs, key));
+  } catch (e) {
+    console.error(e);
+    state.mode = 'local'; state.localReason = 'config';
+    start(makeLocalStore());
+  }
+  renderHeader();
+})();
+})();
+</script>
+</body>
+</html>
