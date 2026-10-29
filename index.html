@@ -7,40 +7,41 @@
 <title>絶 固定進捗ボード</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
 <style>
 /* Layout: 単一カラムの作業画面。上部にチーム名とタブ、本文は 進捗 / 活動記録 / 計画設定 の3ビュー */
 :root {
-  --bg: #f4f5f7;
+  --bg: #f6f5f2;
   --surface: #ffffff;
-  --ink: #1b1e25;
-  --muted: #5f6673;
-  --faint: #8b929e;
-  --line: #dde0e6;
-  --line-strong: #c4c9d2;
-  --accent: #2e5a87;
+  --ink: #1b1d21;
+  --muted: #62666f;
+  --faint: #9a9da4;
+  --line: #e6e4df;
+  --line-strong: #d2cfc8;
+  --accent: #3d5a80;
   --accent-ink: #ffffff;
-  --accent-soft: #e4ebf3;
-  --seg: #e9ecf1;
-  --seg-alt: #dfe3ea;
-  --ahead: #2c7a57;
-  --ahead-soft: #e2f1e9;
-  --behind: #b04f27;
-  --behind-soft: #f7e7df;
+  --accent-soft: #e6ecf3;
+  --seg: #eeece8;
+  --seg-alt: #e6e4df;
+  --ahead: #3f7a5c;
+  --ahead-soft: #e5f0ea;
+  --behind: #b5523b;
+  --behind-soft: #f6e8e3;
+  --ease: cubic-bezier(.2, .7, .2, 1);
   --font: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121419; --surface: #1a1d24; --ink: #e6e8ec; --muted: #9ba2ae; --faint: #747b88;
-    --line: #2a2f38; --line-strong: #3a404b; --accent: #82a9d4; --accent-ink: #10151c; --accent-soft: #1e2a38;
-    --seg: #232831; --seg-alt: #2a303a; --ahead: #62bf93; --ahead-soft: #18291f; --behind: #e38c62; --behind-soft: #2e1f18;
+    --bg: #131417; --surface: #1a1b1f; --ink: #ececea; --muted: #9a9ea6; --faint: #6a6e76;
+    --line: #26282d; --line-strong: #383b42; --accent: #8fa9cc; --accent-ink: #10151c; --accent-soft: #212b38;
+    --seg: #222429; --seg-alt: #2a2c32; --ahead: #6fbf98; --ahead-soft: #1a2a22; --behind: #e08a72; --behind-soft: #2e1f1a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121419; --surface: #1a1d24; --ink: #e6e8ec; --muted: #9ba2ae; --faint: #747b88;
-  --line: #2a2f38; --line-strong: #3a404b; --accent: #82a9d4; --accent-ink: #10151c; --accent-soft: #1e2a38;
-  --seg: #232831; --seg-alt: #2a303a; --ahead: #62bf93; --ahead-soft: #18291f; --behind: #e38c62; --behind-soft: #2e1f18;
+  --bg: #131417; --surface: #1a1b1f; --ink: #ececea; --muted: #9a9ea6; --faint: #6a6e76;
+  --line: #26282d; --line-strong: #383b42; --accent: #8fa9cc; --accent-ink: #10151c; --accent-soft: #212b38;
+  --seg: #222429; --seg-alt: #2a2c32; --ahead: #6fbf98; --ahead-soft: #1a2a22; --behind: #e08a72; --behind-soft: #2e1f1a;
   color-scheme: dark;
 }
 
@@ -62,24 +63,40 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---- header ---- */
-.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top { border-bottom: 1px solid var(--line); }
 .top .wrap { padding-block: 20px 0; display: grid; gap: 14px; }
-.title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
-.title-row h1 { font-size: 20px; font-weight: 700; letter-spacing: .02em; }
+.brand-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.brand { color: var(--ink); font-weight: 500; }
+.mode { display: inline-flex; align-items: center; gap: 8px; letter-spacing: .06em; }
+.mode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+.mode[data-state="shared"]::before { background: var(--ahead); }
+.mode[data-state="local"]::before { background: var(--behind); }
+.brand-tools { display: inline-flex; align-items: center; gap: 14px; }
+.theme-btn {
+  appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 3px 10px 3px 8px; font-size: 11px; letter-spacing: .06em; color: var(--muted);
+  transition: color .2s, border-color .2s;
+}
+.theme-btn:hover { color: var(--ink); border-color: var(--muted); }
+.theme-btn svg { display: block; }
+.title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding-top: 6px; }
+.title-row h1 { font-size: clamp(22px, 3.6vw, 30px); font-weight: 500; letter-spacing: -.01em; line-height: 1.3; }
 .title-row .ult { color: var(--muted); font-size: 14px; }
-.title-row .mode { margin-left: auto; font-size: 12px; color: var(--faint); }
-.tabs { display: flex; gap: 4px; overflow-x: auto; }
+.tabs { position: relative; display: flex; gap: 28px; overflow-x: auto; scrollbar-width: none; }
 .tab {
   appearance: none; background: none; border: 0; cursor: pointer;
-  padding: 8px 14px 10px; font-size: 14px; color: var(--muted); font-weight: 500;
-  border-bottom: 2px solid transparent; white-space: nowrap;
+  padding: 8px 0 12px; font-size: 14px; color: var(--muted); font-weight: 500;
+  white-space: nowrap; transition: color .2s;
 }
 .tab:hover { color: var(--ink); }
-.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab[aria-selected="true"] { color: var(--ink); }
 .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tab-ink { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--ink); pointer-events: none; }
+.tab-ink.ready { transition: transform .4s var(--ease), width .4s var(--ease); }
 
-main .wrap { padding-block: 24px 64px; }
-.view { display: grid; gap: 28px; }
+main .wrap { padding-block: 32px 72px; }
+.view { display: grid; gap: 36px; }
 .view[hidden] { display: none; }
 .notice {
   font-size: 13px; color: var(--muted); background: var(--accent-soft);
@@ -89,37 +106,37 @@ main .wrap { padding-block: 24px 64px; }
 /* ---- section heading ---- */
 .sec { display: grid; gap: 12px; min-width: 0; }
 .sec-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.sec-h h2 { font-size: 15px; font-weight: 700; }
+.sec-h h2 { font-size: 15px; font-weight: 500; }
 .sec-h .sub { font-size: 12px; color: var(--faint); }
 
 /* ---- status ---- */
 .status {
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-  padding: 22px 24px; display: grid; gap: 18px;
+  padding: clamp(20px, 3.4vw, 32px); display: grid; gap: 22px;
 }
 .status-main { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; justify-content: space-between; }
-.label { font-size: 12px; color: var(--faint); letter-spacing: .04em; }
-.now-phase { font-size: 26px; font-weight: 700; line-height: 1.35; }
-.now-phase .pn { color: var(--accent); margin-right: 8px; }
+.label { font-size: 12px; color: var(--faint); letter-spacing: .1em; }
+.now-phase { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; font-size: clamp(20px, 3vw, 26px); font-weight: 500; line-height: 1.3; margin-top: 6px; }
+.now-phase .pn { color: var(--accent); font-size: clamp(52px, 9vw, 76px); font-weight: 300; letter-spacing: -.04em; line-height: .95; }
 .pill {
-  display: inline-flex; align-items: baseline; gap: 6px;
-  padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 16px;
-  background: var(--accent-soft); color: var(--accent);
+  display: inline-flex; align-items: center; gap: 10px;
+  font-weight: 500; font-size: 16px; color: var(--accent);
 }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
 .pill.behind { background: var(--behind-soft); color: var(--behind); }
 .pill.ahead { background: var(--ahead-soft); color: var(--ahead); }
-.pill small { font-weight: 500; font-size: 12px; }
-.status-note { color: var(--muted); font-size: 13px; margin: 0; }
+.pill small { font-weight: 400; font-size: 12px; color: var(--muted); }
+.status-note { color: var(--muted); font-size: 14px; line-height: 1.9; margin: 0; }
 .status-note b { color: var(--ink); font-weight: 500; }
 
 /* ---- phase track ---- */
 .track { display: grid; gap: 6px; }
-.bar { position: relative; height: 34px; display: flex; border-radius: 4px; overflow: hidden; background: var(--seg); }
+.bar { position: relative; height: 30px; display: flex; border-radius: 3px; overflow: hidden; background: var(--seg); }
 .seg {
   position: relative; height: 100%; min-width: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; color: var(--muted); font-weight: 500;
-  border-right: 1px solid var(--surface);
+  border-right: 2px solid var(--surface);
 }
 .seg:nth-child(even) { background: var(--seg-alt); }
 .seg:last-child { border-right: 0; }
@@ -133,11 +150,11 @@ main .wrap { padding-block: 24px 64px; }
 
 /* ---- stats ---- */
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.stat { background: var(--surface); padding: 16px 18px; display: grid; gap: 2px; align-content: start; min-width: 0; }
-.stat .v { font-size: 22px; font-weight: 700; line-height: 1.3; }
-.stat .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+.stat { background: var(--surface); padding: 18px 20px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.stat .v { font-size: clamp(26px, 3.4vw, 32px); font-weight: 300; letter-spacing: -.02em; line-height: 1.25; margin-top: 2px; }
+.stat .v small { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--muted); margin-left: 4px; }
 .stat .s { font-size: 12px; color: var(--muted); }
-.stat .meter { height: 4px; background: var(--seg); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.stat .meter { height: 3px; background: var(--seg); border-radius: 2px; margin-top: 8px; overflow: hidden; }
 .stat .meter span { display: block; height: 100%; background: var(--accent); }
 @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
@@ -147,6 +164,8 @@ table { width: 100%; border-collapse: collapse; min-width: 560px; }
 th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th { font-size: 12px; font-weight: 500; color: var(--faint); background: var(--surface); }
 tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background .15s; }
+tbody tr:hover { background: var(--bg); }
 td.num, th.num { text-align: right; }
 td.wrap-cell { white-space: normal; min-width: 160px; color: var(--muted); }
 .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); }
@@ -185,17 +204,20 @@ input:disabled, select:disabled, textarea:disabled { opacity: .6; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .btn {
   appearance: none; cursor: pointer; border-radius: 6px; padding: 8px 18px; font-size: 14px; font-weight: 500;
-  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
+  transition: background .2s, border-color .2s, color .2s, transform .1s;
 }
-.btn:hover { filter: brightness(1.08); }
+.btn:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
-.btn.ghost:hover { background: var(--seg); filter: none; }
+.btn.ghost:hover { background: var(--seg); color: var(--ink); border-color: var(--line-strong); }
 .btn.small { padding: 4px 10px; font-size: 12px; }
-.btn.warn { background: var(--behind); border-color: var(--behind); color: #fff; }
-.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.btn.warn, .btn.warn:hover { background: var(--behind); border-color: var(--behind); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; }
 .icon-btn {
   appearance: none; cursor: pointer; border: 1px solid var(--line-strong); background: transparent; color: var(--muted);
   border-radius: 6px; width: 30px; height: 30px; font-size: 13px; line-height: 1; display: inline-grid; place-items: center;
+  transition: background .15s, color .15s;
 }
 .icon-btn:hover { background: var(--seg); color: var(--ink); }
 .icon-btn:disabled { opacity: .35; cursor: default; }
@@ -234,9 +256,9 @@ input:disabled, select:disabled, textarea:disabled { opacity: .6; }
 .seg-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; justify-self: start; max-width: 100%; }
 .seg-toggle label { cursor: pointer; }
 .seg-toggle input { position: absolute; opacity: 0; pointer-events: none; }
-.seg-toggle span { display: block; padding: 6px 14px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.seg-toggle span { display: block; padding: 6px 14px; font-size: 13px; color: var(--muted); white-space: nowrap; transition: background .2s, color .2s; }
 .seg-toggle label + label span { border-left: 1px solid var(--line-strong); }
-.seg-toggle input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.seg-toggle input:checked + span { background: var(--ink); color: var(--bg); color: var(--accent-ink); font-weight: 500; }
 .seg-toggle input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
 .simple-fields { grid-template-columns: repeat(auto-fit, minmax(150px, 220px)); }
 .unit-input { position: relative; display: block; }
@@ -266,22 +288,158 @@ input:disabled, select:disabled, textarea:disabled { opacity: .6; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.err { background: var(--behind); color: #fff; }
-@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+.toast.good { background: var(--ahead); color: var(--bg); font-weight: 500; }
+
+/* ---- 見込みとの差の推移 ---- */
+.tr-now { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--accent); }
+.tr-now.ahead { color: var(--ahead); }
+.tr-now.behind { color: var(--behind); }
+.trend { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 22px 22px 14px 58px; }
+.trend > .hint { margin-left: -36px; }
+.trend-plot { position: relative; height: 170px; }
+.tr-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tr-zero { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.tr-area { stroke: none; opacity: .16; }
+.tr-area.up { fill: var(--ahead); }
+.tr-area.dn { fill: var(--behind); }
+.tr-line { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.tp { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--muted); transform: translate(-50%, -50%); }
+.tp.ahead { border-color: var(--ahead); }
+.tp.behind { border-color: var(--behind); }
+.tp.last { width: 10px; height: 10px; background: var(--ink); border-color: var(--surface); box-shadow: 0 0 0 1.5px var(--ink); }
+.tp::before { content: ""; position: absolute; inset: -8px; }
+.tp:hover::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg); font-size: 11px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; z-index: 2;
+}
+.tr-y { position: absolute; left: -50px; width: 40px; text-align: right; font-size: 11px; color: var(--faint); transform: translateY(-50%); line-height: 1; }
+.tr-x { display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); margin-top: 10px; }
+
+/* ---- 活動カレンダーと記録フォーム ---- */
+.rec-top { display: grid; gap: 36px; align-items: start; }
+@media (min-width: 900px) { .rec-top { grid-template-columns: 300px minmax(0, 1fr); } }
+.cal { gap: 12px; padding: 16px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cal-title { display: grid; text-align: center; line-height: 1.45; }
+.cal-title b { font-weight: 500; font-size: 15px; }
+.cal-title span { font-size: 11px; color: var(--faint); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-w { font-size: 11px; color: var(--faint); text-align: center; }
+.cal-d {
+  appearance: none; position: relative; aspect-ratio: 1; padding: 0; min-width: 0;
+  display: grid; place-items: center; font: inherit; font-size: 11px; color: var(--muted);
+  background: var(--seg); border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+  transition: box-shadow .15s, transform .15s;
+}
+.cal-d:hover { box-shadow: 0 0 0 1px var(--muted); }
+.cal-d.out { background: none; cursor: default; }
+.cal-d.out:hover { box-shadow: none; }
+.cal-d.act { background: var(--accent); color: var(--accent-ink); }
+.cal-legend i.act { background: var(--accent); }
+.cal-d.plan { background: none; border: 1px dashed var(--line-strong); }
+.cal-d.today { font-weight: 700; color: var(--ink); }
+.cal-d.today::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: currentColor; }
+.cal-d.clr::before { content: ""; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--ahead); box-shadow: 0 0 0 1.5px var(--surface); }
+.cal-d.sel { box-shadow: 0 0 0 2px var(--ink); }
+.cal-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11px; color: var(--faint); }
+.cal-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.cal-legend .cal-lg { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; }
+.cal-legend .cal-lg.first { margin-left: 0; }
+.cal-legend i.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ahead); }
+.cal-legend i.plan { border: 1px dashed var(--line-strong); }
+.log-fields { grid-template-columns: minmax(150px, 190px) minmax(0, 1fr); }
+@media (max-width: 560px) { .log-fields { grid-template-columns: minmax(0, 1fr); } }
+.hours-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.hours-in { width: 110px; flex: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip, .ph-chip {
+  appearance: none; cursor: pointer; font: inherit; background: var(--surface); color: var(--muted);
+  border: 1px solid var(--line-strong); transition: background .15s, color .15s, border-color .15s;
+}
+.chip { border-radius: 999px; padding: 3px 11px; font-size: 12px; }
+.ph-chip { border-radius: 6px; min-width: 46px; padding: 8px 10px; font-size: 13px; font-weight: 500; }
+.ph-chip.done { color: var(--faint); }
+.chip:hover, .ph-chip:hover { color: var(--ink); border-color: var(--muted); }
+.chip.on, .ph-chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.chip:disabled, .ph-chip:disabled { cursor: default; opacity: .6; }
+.ph-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.ph-pick-name { margin-left: 10px; color: var(--ink); font-weight: 500; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---- 突破の演出 ---- */
+.status { position: relative; overflow: hidden; }
+.seg.flash::after { content: ""; position: absolute; inset: 0; background: var(--ahead); opacity: 0; animation: seg-flash 2s ease .9s both; }
+@keyframes seg-flash { 0% { opacity: 0; } 18% { opacity: .65; } 100% { opacity: 0; } }
+.status.done-all::before { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 3px; background: var(--ahead); transform-origin: left; animation: grow 1.4s var(--ease) .6s both; }
+
+/* ---- 読み込み中 ---- */
+.skel { display: grid; gap: 36px; }
+.sk { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 28px; display: grid; gap: 14px; }
+.sk i { display: block; height: 12px; border-radius: 3px; background: var(--seg); position: relative; overflow: hidden; }
+.sk i.big { height: 56px; width: 40%; }
+.sk i::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 65%, transparent), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+.sk-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.sk-4 i { height: 44px; }
+@media (max-width: 560px) { .sk-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- フッター ---- */
+.foot { border-top: 1px solid var(--line); }
+.foot .wrap {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px;
+  padding-block: 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  font-size: 11px; letter-spacing: .06em; color: var(--faint);
+}
+/* 表示時・タブ切り替え時だけ .anim を付けて再生する（データ更新のたびには動かさない） */
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes grow { from { transform: scaleX(0); } }
+@keyframes fade-in { from { opacity: 0; } }
+.view.anim > * { animation: rise .6s var(--ease) both; }
+.view.anim > :nth-child(2) { animation-delay: .07s; }
+.view.anim > :nth-child(3) { animation-delay: .14s; }
+.view.anim > :nth-child(4) { animation-delay: .21s; }
+.view.anim > :nth-child(n+5) { animation-delay: .28s; }
+.view.anim .now-phase .pn { display: inline-block; animation: rise .7s var(--ease) .05s both; }
+.view.anim .fill, .view.anim .meter span, .view.anim .wk-bar .a { transform-origin: left; animation: grow 1s var(--ease) both; }
+.view.anim .fill { animation-delay: .25s; }
+.view.anim .meter span { animation-delay: .35s; }
+.view.anim .wk-bar .a { animation-delay: calc(.35s + var(--i, 0) * 50ms); }
+.view.anim .fill-edge, .view.anim .marker, .view.anim .wk-bar .p { animation: fade-in .4s ease 1s both; }
+@keyframes reveal { from { clip-path: inset(-10% 100% -10% 0); } to { clip-path: inset(-10% -1% -10% 0); } }
+.view.anim .tr-svg { animation: reveal 1.3s var(--ease) .3s both; }
+.view.anim .tp { animation: fade-in .4s ease 1.4s both; }
+.view.anim .cal-d { animation: fade-in .35s ease both; animation-delay: calc(.15s + var(--i, 0) * 12ms); }
+@media (prefers-reduced-motion: reduce) {
+  .toast, .tab-ink.ready { transition: none; }
+  .sk i::after, .seg.flash::after, .status.done-all::before { animation: none !important; }
+  .view.anim > *, .view.anim * { animation: none !important; }
+}
 </style>
 </head>
 <body>
 
 <header class="top">
   <div class="wrap">
+    <div class="brand-row">
+      <span class="brand">ULTIMATE&nbsp;PROGRESS</span>
+      <span class="brand-tools">
+        <span class="mode" id="h-mode">読み込み中…</span>
+        <button class="theme-btn" type="button" id="theme-btn" data-act-theme></button>
+      </span>
+    </div>
     <div class="title-row">
       <h1 id="h-team">固定進捗ボード</h1>
       <span class="ult" id="h-ult"></span>
-      <span class="mode" id="h-mode">読み込み中…</span>
     </div>
     <nav class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="progress" id="tab-progress">進捗</button>
       <button class="tab" role="tab" data-tab="record" id="tab-record">活動記録</button>
       <button class="tab" role="tab" data-tab="plan" id="tab-plan">計画設定</button>
+      <span class="tab-ink" aria-hidden="true"></span>
     </nav>
   </div>
 </header>
@@ -290,7 +448,10 @@ input:disabled, select:disabled, textarea:disabled { opacity: .6; }
   <div class="wrap">
     <div id="banner"></div>
     <section class="view" id="view-progress">
-      <div class="empty"><h2>データを読み込んでいます</h2><p>固定の計画と活動記録を取得しています。</p></div>
+      <div class="skel" role="status" aria-label="読み込み中">
+        <div class="sk"><i style="width:110px"></i><i class="big"></i><i style="width:62%"></i><i style="height:30px"></i></div>
+        <div class="sk sk-4"><i></i><i></i><i></i><i></i></div>
+      </div>
     </section>
     <section class="view" id="view-record" hidden>
       <div class="empty"><h2>データを読み込んでいます</h2><p>しばらく経っても表示されない場合は、通信状況と firebase-config.js の設定を確認してください。</p></div>
@@ -300,6 +461,10 @@ input:disabled, select:disabled, textarea:disabled { opacity: .6; }
     </section>
   </div>
 </main>
+
+<footer class="foot">
+  <div class="wrap"><span id="f-updated"></span><span>ULTIMATE&nbsp;PROGRESS</span></div>
+</footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -406,7 +571,8 @@ function walk(cfg, from, need) {
 }
 
 // ===== 進捗計算 =====
-function calc(cfg, sessions) {
+// lite = true のときは完了見込み日の計算を省く（グラフ用に何度も呼ぶため）
+function calc(cfg, sessions, lite) {
   const phases = cfg.phases || [];
   const planned = phases.map(p => num(p.hours));
   const totalPlanned = planned.reduce((a, b) => a + b, 0);
@@ -452,8 +618,8 @@ function calc(cfg, sessions) {
   let from = hasToday ? addDays(t, 1) : t;
   if (isYmd(cfg.startDate) && from < parse(cfg.startDate)) from = parse(cfg.startDate);
   const remaining = Math.max(0, totalPlanned - actualPos);
-  const projected = complete ? null : walk(cfg, from, remaining);
-  const plannedFinish = isYmd(cfg.startDate) ? walk(cfg, parse(cfg.startDate), totalPlanned) : null;
+  const projected = complete || lite ? null : walk(cfg, from, remaining);
+  const plannedFinish = !lite && isYmd(cfg.startDate) ? walk(cfg, parse(cfg.startDate), totalPlanned) : null;
 
   return { phases, planned, starts, totalPlanned, sorted, byPhase, clearedOn, totalHours, cur, complete,
     actualPos, expIdx, expectedDone, diff, perDay, wk, ad, projected, plannedFinish, remaining, days: sorted.length };
@@ -575,10 +741,10 @@ async function withRetry(fn) {
 
 // ===== トースト =====
 let toastTimer;
-function toast(msg, err) {
+function toast(msg, err, kind) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.toggle('err', !!err); t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), err ? 4200 : 1800);
+  t.textContent = msg; t.classList.toggle('err', !!err); t.classList.toggle('good', kind === 'good'); t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), err ? 4200 : kind === 'good' ? 3600 : 1800);
 }
 
 // ===== 設定の保存（デバウンス・1件ずつ） =====
@@ -615,6 +781,7 @@ function renderHeader() {
   const mode = state.mode === 'shared' ? (state.canWrite ? '共有中' : '共有中・閲覧のみ')
     : state.mode === 'local' ? 'この端末に保存' : '読み込み中…';
   document.getElementById('h-mode').textContent = mode;
+  document.getElementById('h-mode').dataset.state = state.mode || '';
   const b = document.getElementById('banner');
   b.innerHTML = state.mode === 'local'
     ? '<p class="notice" style="margin:0 0 20px">firebase-config.js の設定がまだ入っていないため、このブラウザにだけ保存しています。設定を入れるとメンバーと共有されます。</p>'
@@ -686,7 +853,7 @@ function renderProgress() {
   if (c.phases.length && c.totalPlanned > 0) {
     const segs = c.phases.map((p, i) => {
       const w = c.planned[i] / c.totalPlanned * 100;
-      return `<div class="seg" style="width:${w}%" title="P${i + 1} ${esc(p.name)}・見込み ${fh(c.planned[i])}h">${w > 5 ? 'P' + (i + 1) : ''}</div>`;
+      return `<div class="seg" data-i="${i}" style="width:${w}%" title="P${i + 1} ${esc(p.name)}・見込み ${fh(c.planned[i])}h">${w > 5 ? 'P' + (i + 1) : ''}</div>`;
     }).join('');
     const fillW = Math.min(100, c.actualPos / c.totalPlanned * 100);
     const expW = Math.min(100, c.totalHours / c.totalPlanned * 100);
@@ -726,11 +893,11 @@ function renderProgress() {
 
   const statsHTML = `
   <div class="stats">
-    <div class="stat"><span class="label">今週の活動</span><span class="v">${fh(sumH(wkAct))}<small>/ ${fh(wkPlan.h)}h</small></span>
+    <div class="stat"><span class="label">今週の活動</span><span class="v"><span data-count="${sumH(wkAct)}">${fh(sumH(wkAct))}</span><small>/ ${fh(wkPlan.h)}h</small></span>
       <span class="s">${wkAct.length} / ${wkPlan.days}日・${fmtD(wkStart)}〜</span>${meter(sumH(wkAct), wkPlan.h)}</div>
-    <div class="stat"><span class="label">今月の活動</span><span class="v">${fh(sumH(moAct))}<small>/ ${fh(moPlan.h)}h</small></span>
+    <div class="stat"><span class="label">今月の活動</span><span class="v"><span data-count="${sumH(moAct)}">${fh(sumH(moAct))}</span><small>/ ${fh(moPlan.h)}h</small></span>
       <span class="s">${moAct.length} / ${moPlan.days}日・${t.getMonth() + 1}月</span>${meter(sumH(moAct), moPlan.h)}</div>
-    <div class="stat"><span class="label">累計</span><span class="v">${fh(c.totalHours)}<small>h</small></span>
+    <div class="stat"><span class="label">累計</span><span class="v"><span data-count="${c.totalHours}">${fh(c.totalHours)}</span><small>h</small></span>
       <span class="s">${c.days}日活動・見込み残り ${fh(c.remaining)}h</span>${meter(c.actualPos, c.totalPlanned)}</div>
     <div class="stat"><span class="label">完了見込み</span><span class="v">${finishV}</span><span class="s">${finishS}</span></div>
   </div>`;
@@ -765,6 +932,45 @@ function renderProgress() {
     </table></div>
   </div>` : '';
 
+  // --- 見込みとの差の推移（+ が進み / − が遅れ） ---
+  let trendHTML = '';
+  if (c.phases.length && c.totalPlanned > 0 && c.sorted.length) {
+    const pts = c.sorted.map((s, i) => ({ date: s.date, v: -calc(cfg, c.sorted.slice(0, i + 1), true).diff }));
+    const last = pts[pts.length - 1];
+    let body;
+    if (pts.length < 2) {
+      body = '<p class="hint">記録が2日分以上になると、推移のグラフが表示されます。</p>';
+    } else {
+      const t0 = parse(pts[0].date), span = Math.max(1, dayDiff(t0, parse(last.date)));
+      const M = Math.max(1, Math.ceil(Math.max(...pts.map(p => Math.abs(p.v))) * 1.25));
+      const X = p => dayDiff(t0, parse(p.date)) / span * 100;
+      const Y = v => (1 - (v + M) / (2 * M)) * 100;
+      const line = pts.map(p => `${X(p).toFixed(2)},${Y(p.v).toFixed(2)}`).join(' ');
+      const area = `${X(pts[0]).toFixed(2)},50 ${line} ${X(last).toFixed(2)},50`;
+      const showAll = pts.length <= 40;
+      const dots = pts.map((p, i) => (showAll || i === pts.length - 1)
+        ? `<span class="tp ${diffClass(p.v)}${i === pts.length - 1 ? ' last' : ''}" style="left:${X(p)}%;top:${Y(p.v)}%" data-tip="${fmtD(parse(p.date))}　${diffLabel(p.v)}"></span>` : '').join('');
+      body = `
+      <div class="trend-plot">
+        <svg class="tr-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs><clipPath id="tr-up"><rect x="-1" y="-1" width="102" height="51"/></clipPath><clipPath id="tr-dn"><rect x="-1" y="50" width="102" height="51"/></clipPath></defs>
+          <line class="tr-zero" x1="0" y1="50" x2="100" y2="50"/>
+          <polygon class="tr-area up" points="${area}" clip-path="url(#tr-up)"/>
+          <polygon class="tr-area dn" points="${area}" clip-path="url(#tr-dn)"/>
+          <polyline class="tr-line" points="${line}"/>
+        </svg>
+        ${dots}
+        <span class="tr-y" style="top:0">+${M}h</span><span class="tr-y" style="top:50%">0</span><span class="tr-y" style="top:100%">−${M}h</span>
+      </div>
+      <div class="tr-x"><span>${fmtD(t0)}</span><span>${fmtD(parse(last.date))}</span></div>`;
+    }
+    trendHTML = `
+  <div class="sec">
+    <div class="sec-h"><h2>見込みとの差の推移</h2><span class="sub">上が進み・下が遅れ（活動日ごと）</span><span class="tr-now ${diffClass(last.v)}">現在 ${diffLabel(last.v)}</span></div>
+    <div class="trend">${body}</div>
+  </div>`;
+  }
+
   // --- 直近8週 ---
   const weeks = [];
   for (let k = 7; k >= 0; k--) {
@@ -775,8 +981,8 @@ function renderProgress() {
   const weeksHTML = `
   <div class="sec">
     <div class="sec-h"><h2>週ごとの活動時間</h2><span class="sub">棒が実績、縦線が予定（月曜始まり）</span></div>
-    <div class="weeks">${weeks.map(w => `
-      <div class="wk${w.cur ? ' cur' : ''}">
+    <div class="weeks">${weeks.map((w, i) => `
+      <div class="wk${w.cur ? ' cur' : ''}" style="--i:${i}">
         <span class="wl">${w.a.getMonth() + 1}/${w.a.getDate()}〜${w.cur ? ' 今週' : ''}</span>
         <div class="wk-bar"><div class="a" style="width:${w.act / maxW * 100}%"></div>${w.plan > 0 ? `<div class="p" style="left:calc(${w.plan / maxW * 100}% - 1px)"></div>` : ''}</div>
         <span class="wv">${fh(w.act)}h <small>/ ${fh(w.plan)}h</small></span>
@@ -791,9 +997,13 @@ function renderProgress() {
     ${trackHTML}
   </div>
   ${statsHTML}
+  ${trendHTML}
   ${tableHTML}
   ${weeksHTML}`;
 }
+
+const diffLabel = v => Math.abs(v) < 0.5 ? '見込みどおり' : v > 0 ? `${fh(v)}h 進み` : `${fh(-v)}h 遅れ`;
+const diffClass = v => Math.abs(v) < 0.5 ? '' : v > 0 ? 'ahead' : 'behind';
 
 // ---- 活動記録 ----
 let logHoursTouched = false;
@@ -840,24 +1050,39 @@ function renderRecord() {
     // 入力中のフォームは触らず、一覧だけ差し替える
     const list = document.getElementById('log-list');
     if (list) list.outerHTML = listHTML;
+    refreshCal();
     return;
   }
 
-  const prev = form ? {
+  // 記録の読み込み前に入れた初期値は引き継がず、読み込み後の内容で入れ直す
+  const prev = form && form.dataset.filled === '1' ? {
     date: document.getElementById('log-date').value, hours: document.getElementById('log-hours').value,
     phase: document.getElementById('log-phase').value, cleared: document.getElementById('log-cleared').checked,
     note: document.getElementById('log-note').value,
   } : null;
 
   const opts = (cfg.phases || []).map((p, i) => `<option value="${esc(p.id)}">P${i + 1}${p.name ? ' ' + esc(p.name) : ''}</option>`).join('');
+  const cc = calc(cfg, state.sessions, true);
+  const phChips = (cfg.phases || []).map((p, i) => `<button type="button" class="ph-chip${cc.complete || i < cc.cur ? ' done' : ''}" data-act="phase-chip" data-id="${esc(p.id)}" title="P${i + 1}${p.name ? ' ' + esc(p.name) : ''}"${dis()}>P${i + 1}</button>`).join('');
+  const hourChips = [1, 1.5, 2, 2.5, 3, 3.5, 4].map(v => `<button type="button" class="chip" data-act="hours-chip" data-v="${v}"${dis()}>${v}</button>`).join('');
   el.innerHTML = `
+  <div class="rec-top">
+  ${calendarHTML()}
   <div class="sec">
     <div class="sec-h"><h2>活動を記録</h2><span class="sub">1日1件。同じ日付で保存すると上書きされます</span></div>
     <form class="panel" id="log-form" autocomplete="off">
-      <div class="fields">
+      <div class="fields log-fields">
         <label class="field"><span>日付</span><input type="date" id="log-date"${dis()}></label>
-        <label class="field"><span>活動時間（h）</span><input type="number" id="log-hours" min="0" max="24" step="0.5"${dis()}></label>
-        <label class="field"><span>到達したフェーズ（一番先）</span><select id="log-phase"${dis()}>${opts}</select></label>
+        <div class="field"><span>活動時間</span>
+          <div class="hours-row">
+            <label class="unit-input hours-in"><input type="number" id="log-hours" min="0" max="24" step="0.5" aria-label="活動時間（時間）"${dis()}><em>時間</em></label>
+            <div class="chips" role="group" aria-label="よく使う時間">${hourChips}</div>
+          </div>
+        </div>
+      </div>
+      <div class="field"><span>到達したフェーズ（一番先）<b class="ph-pick-name" id="log-phase-name"></b></span>
+        <div class="ph-pick" role="group" aria-label="到達したフェーズ">${phChips}</div>
+        <select id="log-phase" class="sr-only" tabindex="-1" aria-hidden="true"${dis()}>${opts}</select>
       </div>
       <p class="hint">その日に一番先まで進んだフェーズを選んでください。それより前のフェーズは自動で突破扱いになります（例：初日にP2まで行ったら P2 を選ぶ → P1 突破）。</p>
       <div id="log-split"></div>
@@ -868,6 +1093,7 @@ function renderRecord() {
         <span class="hint" id="log-hint"></span>
       </div>
     </form>
+  </div>
   </div>
   ${listHTML}`;
 
@@ -880,6 +1106,7 @@ function renderRecord() {
     document.getElementById('log-note').value = prev.note;
     renderSplit();
     updateLogHint();
+    document.getElementById('log-form').dataset.filled = '1';
   } else {
     fillLogFor(ymd(todayD()));
   }
@@ -888,6 +1115,7 @@ function fillLogFor(date) {
   const cfg = state.config; if (!cfg) return;
   const ex = state.sessions.find(s => s.date === date);
   document.getElementById('log-date').value = date;
+  document.getElementById('log-form').dataset.filled = state.sessionsLoaded ? '1' : '0';
   const sel = document.getElementById('log-phase');
   if (ex) {
     document.getElementById('log-hours').value = fh(num(ex.hours));
@@ -982,6 +1210,81 @@ function updateLogHint() {
   if (!hint || !btn) return;
   hint.textContent = ex ? 'この日の記録があります。保存すると内容を更新します。' : '';
   btn.textContent = ex ? '更新する' : '記録する';
+  syncPhaseChips(); syncHoursChips(); markCalSel();
+}
+// フェーズと時間のボタンを、実際の入力値に合わせて選択表示にする
+function syncPhaseChips() {
+  const sel = document.getElementById('log-phase'); if (!sel || !state.config) return;
+  document.querySelectorAll('#log-form .ph-chip').forEach(b => {
+    const on = b.dataset.id === sel.value;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  });
+  const p = (state.config.phases || []).find(x => x.id === sel.value);
+  const name = document.getElementById('log-phase-name');
+  if (name) name.textContent = p && p.name ? p.name : '';
+}
+function syncHoursChips() {
+  const v = parseFloat(document.getElementById('log-hours')?.value);
+  document.querySelectorAll('#log-form .chip[data-v]').forEach(b => {
+    const on = +b.dataset.v === v;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+// ---- 活動カレンダー ----
+function calendarHTML() {
+  const cfg = state.config;
+  const t = todayD();
+  const m = state.calMonth || new Date(t.getFullYear(), t.getMonth(), 1);
+  const first = new Date(m.getFullYear(), m.getMonth(), 1), last = new Date(m.getFullYear(), m.getMonth() + 1, 0);
+  const byDate = {}; state.sessions.forEach(s => { byDate[s.date] = s; });
+  const c = calc(cfg, state.sessions, true);
+  const pIdx = id => c.phases.findIndex(p => p.id === id);
+  const clears = {};
+  for (const [pid, d] of Object.entries(c.clearedOn)) { const i = pIdx(pid); if (i >= 0) (clears[d] = clears[d] || []).push('P' + (i + 1)); }
+  const start = isYmd(cfg.startDate) ? parse(cfg.startDate) : null;
+  const cells = [];
+  for (let k = 0; k < monIdx(first); k++) cells.push('<span class="cal-d out" aria-hidden="true"></span>');
+  let actDays = 0, actH = 0, i = 0;
+  for (let d = new Date(first); d <= last; d = addDays(d, 1), i++) {
+    const key = ymd(d), s = byDate[key], h = s ? num(s.hours) : 0;
+    const planned = !isSimple(cfg) && schedOn(cfg, d) > 0 && (!start || d >= start);
+    const cls = ['cal-d', s ? 'act' : '', !s && planned ? 'plan' : '', key === ymd(t) ? 'today' : '', clears[key] ? 'clr' : ''].filter(Boolean).join(' ');
+    let tip = fmtD(d);
+    if (s) {
+      actDays++; actH += h;
+      const ph = Array.isArray(s.split) && s.split.length > 1
+        ? s.split.map(x => 'P' + (pIdx(x.phaseId) + 1)).join('→') : (pIdx(s.phaseId) >= 0 ? 'P' + (pIdx(s.phaseId) + 1) : '');
+      tip += `　${fh(h)}h${ph ? '・' + ph : ''}`;
+    } else if (planned) tip += '　予定日';
+    if (clears[key]) tip += `　${clears[key].join('・')} 突破`;
+    cells.push(`<button type="button" class="${cls}" data-act="cal-day" data-date="${key}" style="--i:${i}" title="${esc(tip)}" aria-label="${esc(tip)}">${d.getDate()}</button>`);
+  }
+  return `
+  <div class="sec" id="log-cal">
+    <div class="sec-h"><h2>活動カレンダー</h2></div>
+    <div class="panel cal">
+      <div class="cal-head">
+        <button type="button" class="icon-btn" data-act="cal-prev" aria-label="前の月">‹</button>
+        <div class="cal-title"><b>${m.getFullYear()}年${m.getMonth() + 1}月</b><span>${actDays}日・${fh(actH)}h</span></div>
+        <button type="button" class="icon-btn" data-act="cal-next" aria-label="次の月">›</button>
+      </div>
+      <div class="cal-grid">${DOW.map(w => `<span class="cal-w">${w}</span>`).join('')}${cells.join('')}</div>
+      <div class="cal-legend">
+        <span class="cal-lg first"><i class="act"></i>活動日</span>
+        <span class="cal-lg"><i class="dot"></i>突破</span>
+        ${!isSimple(cfg) ? '<span class="cal-lg"><i class="plan"></i>予定日</span>' : ''}
+      </div>
+    </div>
+  </div>`;
+}
+function refreshCal() {
+  const box = document.getElementById('log-cal');
+  if (box && state.config) { box.outerHTML = calendarHTML(); markCalSel(); }
+}
+function markCalSel() {
+  const v = document.getElementById('log-date')?.value;
+  document.querySelectorAll('#log-cal .cal-d[data-date]').forEach(b => b.classList.toggle('sel', b.dataset.date === v));
 }
 
 // ---- 計画設定 ----
@@ -1103,7 +1406,23 @@ function renderPlan(force) {
   </div>`;
 }
 
+// ページ下の「最終更新」：計画と記録のうち一番新しい保存時刻
+function renderFooter() {
+  const el = document.getElementById('f-updated'); if (!el) return;
+  let latest = '', what = '';
+  if (state.config && typeof state.config.updatedAt === 'string') { latest = state.config.updatedAt; what = '計画'; }
+  for (const s of state.sessions) if (typeof s.updatedAt === 'string' && s.updatedAt > latest) { latest = s.updatedAt; what = '活動記録'; }
+  const d = latest ? new Date(latest) : null;
+  if (!d || isNaN(d)) { el.textContent = ''; return; }
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const dd = dayDiff(day, todayD()), hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const when = dd === 0 ? `今日 ${hm}` : dd === 1 ? `昨日 ${hm}` : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+  el.textContent = `最終更新 ${when}（${what}）`;
+}
+setInterval(() => renderFooter(), 60000);
+
 function renderAll(force) {
+  renderFooter();
   renderHeader();
   renderProgress();
   renderRecord();
@@ -1111,13 +1430,91 @@ function renderAll(force) {
 }
 
 // ===== タブ =====
+// ---- 表示テーマ：自動（端末の設定）→ ライト → ダーク の順に切り替え ----
+const THEME_KEY = 'ult-progress-theme';
+const THEMES = {
+  auto: { label: '自動', icon: '<circle cx="7" cy="7" r="5.25" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.75a5.25 5.25 0 0 1 0 10.5z" fill="currentColor"/>' },
+  light: { label: 'ライト', icon: '<circle cx="7" cy="7" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M7 .9v1.6M7 11.5v1.6M.9 7h1.6M11.5 7h1.6M2.7 2.7l1.1 1.1M10.2 10.2l1.1 1.1M2.7 11.3l1.1-1.1M10.2 3.8l1.1-1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' },
+  dark: { label: 'ダーク', icon: '<path d="M11.8 8.6A5.2 5.2 0 0 1 5.4 2.2a5.2 5.2 0 1 0 6.4 6.4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>' },
+};
+function readTheme() { try { const t = localStorage.getItem(THEME_KEY); return THEMES[t] ? t : 'auto'; } catch (e) { return 'auto'; } }
+function applyTheme(t) {
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  const b = document.getElementById('theme-btn');
+  if (b) {
+    b.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">' + THEMES[t].icon + '</svg>' + THEMES[t].label;
+    b.setAttribute('aria-label', '表示テーマ：' + THEMES[t].label + '（押すと切り替え）');
+    b.title = '表示テーマを切り替え';
+  }
+}
+applyTheme(readTheme());
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const order = ['auto', 'light', 'dark'];
+  const next = order[(order.indexOf(readTheme()) + 1) % order.length];
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  applyTheme(next);
+});
+
+const reduceMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+// 数字を 0 から数え上げる
+function countUp(root) {
+  if (reduceMotion()) return;
+  root.querySelectorAll('[data-count]').forEach(n => {
+    const to = parseFloat(n.dataset.count);
+    if (!isFinite(to) || to <= 0) return;
+    const t0 = performance.now(), delay = 150, dur = 800;
+    n.textContent = '0';
+    const step = now => {
+      if (!n.isConnected) return;
+      const p = Math.min(1, Math.max(0, (now - t0 - delay) / dur));
+      n.textContent = fh(to * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+// 記録で突破したフェーズを、進捗タブを開いたときに光らせる
+function applyFlash() {
+  const f = state.flash; state.flash = null;
+  if (!f) return;
+  const v = document.getElementById('view-progress');
+  for (let i = f.from; i <= f.to; i++) v.querySelector(`.seg[data-i="${i}"]`)?.classList.add('flash');
+  if (f.all) v.querySelector('.status')?.classList.add('done-all');
+}
+// 表示の入りの動き。終わったら外して、データ更新で再描画しても動かないようにする
+function playIn(el) {
+  if (!el) return;
+  el.classList.remove('anim');
+  void el.offsetWidth;
+  el.classList.add('anim');
+  countUp(el);
+  clearTimeout(el._animTimer);
+  el._animTimer = setTimeout(() => el.classList.remove('anim'), 1500);
+}
+// 選択中のタブの下線を、そのタブの位置と幅に合わせる
+function moveInk() {
+  const ink = document.querySelector('.tab-ink');
+  const b = document.getElementById('tab-' + state.tab);
+  if (!ink || !b || !b.offsetWidth) return;
+  ink.style.width = b.offsetWidth + 'px';
+  ink.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+  if (!ink.classList.contains('ready')) requestAnimationFrame(() => ink.classList.add('ready'));
+}
+addEventListener('resize', () => moveInk());
+try { document.fonts.ready.then(() => moveInk()); } catch (e) {}
+
 function setTab(tab, push) {
   if (!['progress', 'record', 'plan'].includes(tab)) tab = 'progress';
+  const changed = state.tab !== tab;
   state.tab = tab;
   for (const k of ['progress', 'record', 'plan']) {
     document.getElementById('view-' + k).hidden = k !== tab;
     document.getElementById('tab-' + k).setAttribute('aria-selected', String(k === tab));
   }
+  moveInk();
+  if (push && changed) playIn(document.getElementById('view-' + tab));
+  if (tab === 'progress' && state.flash) applyFlash();
   if (push) { try { history.replaceState(null, '', '#' + tab); } catch (e) {} }
   try { localStorage.setItem('ult-progress-tab', tab); } catch (e) {}
 }
@@ -1129,6 +1526,26 @@ document.addEventListener('click', e => {
   const btn = e.target.closest('[data-act]');
   if (!btn || btn.disabled) return;
   const act = btn.dataset.act;
+  if (act === 'cal-prev' || act === 'cal-next') {
+    const t = todayD(), m = state.calMonth || new Date(t.getFullYear(), t.getMonth(), 1);
+    state.calMonth = new Date(m.getFullYear(), m.getMonth() + (act === 'cal-next' ? 1 : -1), 1);
+    refreshCal(); return;
+  }
+  if (act === 'cal-day') {
+    fillLogFor(btn.dataset.date);
+    if (innerWidth < 900) document.getElementById('log-form')?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+    return;
+  }
+  if (act === 'hours-chip') {
+    const inp = document.getElementById('log-hours'); if (!inp) return;
+    inp.value = btn.dataset.v; logHoursTouched = true;
+    updateSplitRemainder(); syncHoursChips(); return;
+  }
+  if (act === 'phase-chip') {
+    const sel = document.getElementById('log-phase'); if (!sel) return;
+    sel.value = btn.dataset.id; splitDraft.back = 1;
+    renderSplit(); syncPhaseChips(); return;
+  }
   if (act === 'join') {
     const k = parseKey(document.getElementById('join-key').value);
     if (!k) { toast('招待リンクかチームキーの形式が正しくありません', true); return; }
@@ -1214,7 +1631,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('input', e => {
   const t = e.target, cfg = state.config;
-  if (t.id === 'log-hours') { logHoursTouched = true; updateSplitRemainder(); return; }
+  if (t.id === 'log-hours') { logHoursTouched = true; updateSplitRemainder(); syncHoursChips(); return; }
   if (t.dataset.split) { splitDraft.values[t.dataset.split] = num(t.value); updateSplitRemainder(); return; }
   if (!cfg || !state.canWrite) return;
   if (t.dataset.cfg) {
@@ -1305,10 +1722,21 @@ document.addEventListener('submit', e => {
     if (rem > 1e-9) parts.push({ phaseId: rec.phaseId, hours: r1(rem) });
     if (parts.length > 1) rec.split = parts;
   }
+  // 保存前後で攻略中のフェーズが進んだら、突破の演出を出す
+  const cfgNow = state.config;
+  const before = calc(cfgNow, state.sessions, true);
+  const after = calc(cfgNow, [...state.sessions.filter(s => s.date !== date), rec], true);
+  let cheer = null;
+  if (after.complete && !before.complete) cheer = { from: Math.max(0, before.cur), to: cfgNow.phases.length - 1, all: true };
+  else if (!after.complete && !before.complete && after.cur > before.cur) cheer = { from: before.cur, to: after.cur - 1 };
   const btn = document.getElementById('log-save'); btn.disabled = true;
   withRetry(() => store.setSession(rec))
     .then(() => {
-      toast(rec.cleared ? '記録しました。フェーズ突破おめでとうございます' : '記録しました');
+      if (cheer) {
+        state.flash = cheer;
+        const p = cfgNow.phases[cheer.to];
+        toast(cheer.all ? '攻略完了！ おつかれさまでした' : `P${cheer.to + 1}${p && p.name ? ' ' + p.name : ''} 突破！ 進捗タブで確認できます`, false, 'good');
+      } else toast('記録しました');
       btn.disabled = false;
       document.activeElement?.blur?.();
       renderRecord(); fillLogFor(ymd(todayD()));
@@ -1322,6 +1750,11 @@ document.addEventListener('focusout', () => setTimeout(() => {
 }, 0));
 
 // ===== 起動 =====
+function introOnce() {
+  if (state.introDone || !state.configLoaded || !state.sessionsLoaded) return;
+  state.introDone = true;
+  playIn(document.getElementById('view-' + state.tab));
+}
 function start(s) {
   store = s;
   store.onConfig(cfg => {
@@ -1330,11 +1763,13 @@ function start(s) {
     state.config = cfg; state.configLoaded = true;
     if (cfg && !cfg.phases) cfg.phases = [];
     renderAll();
+    introOnce();
   });
   store.onSessions(list => {
     state.sessions = list.filter(x => x && isYmd(x.date));
     state.sessionsLoaded = true;
     renderAll();
+    introOnce();
   });
 }
 
